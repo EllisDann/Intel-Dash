@@ -21,7 +21,19 @@ IntelBoard is a productivity analytics SaaS designed to help teams measure perfo
 - npm or yarn
 
 ## Local Development
-Use the backend and frontend package scripts to run the app locally.
+From the repo root, you can run both services together:
+
+```bash
+npm install
+npm run dev
+```
+
+Alternatively, run the servers independently:
+
+```bash
+cd backend && npm install && npm run dev
+cd frontend && npm install && npm run dev
+```
 
 ## Environment
 Copy `.env.example` to `.env` and configure your local database and API secrets.
