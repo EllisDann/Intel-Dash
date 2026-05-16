@@ -150,7 +150,7 @@ const LandingPage = () => {
 
       <section className="ai-impact">
         <div className="impact-visual">
-          <div className="impact-panel">
+          <div className="impact-panel impact-panel-secondary">
             <span className="panel-badge">AI insight</span>
             <h3>Cycle time is down 19%</h3>
             <p>Since AI adoption, PR cycle time is down 19% and sprint delivery has become more consistent.</p>
@@ -193,7 +193,7 @@ const LandingPage = () => {
         </div>
       </section>
 
-      <section className="landing-footer">
+      <section className="landing-footer impact-panel impact-panel-secondary">
         <h2>Start measuring AI impact today</h2>
         <div className="footer-action">
           <Link to="/register" className="button button-primary">

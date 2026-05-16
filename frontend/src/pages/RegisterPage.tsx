@@ -26,25 +26,29 @@ const RegisterPage = () => {
   };
 
   return (
-    <div className="page-shell">
-      <div className="auth-card">
-        <h1>Create an account</h1>
-        <form onSubmit={handleSubmit}>
-          <label>
-            Email
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-          </label>
-          <label>
-            Password
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-          </label>
-          {error && <p className="error-message">{error}</p>}
-          <button type="submit" disabled={loading}>{loading ? 'Creating account...' : 'Register'}</button>
-        </form>
-        <p>
-          Already have an account? <Link to="/login">Sign in</Link>
-        </p>
-      </div>
+    <div className="auth-card">
+      <Link to="/" className="header-logo" style={{ marginBottom: '2rem' }}>
+        <img src="/logonobg.png" alt="IntelBoard" style={{ height: '48px', width: 'auto' }} />
+        <span style={{ color: 'white' }}>IntelBoard</span>
+      </Link>
+      <h1>Create an account</h1>
+      <form onSubmit={handleSubmit}>
+        <label>
+          Email
+          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+        </label>
+        <label>
+          Password
+          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+        </label>
+        {error && <p className="error-message">{error}</p>}
+        <button type="submit" className="button button-primary" disabled={loading}>
+          {loading ? 'Creating account...' : 'Register'}
+        </button>
+      </form>
+      <p>
+        Already have an account? <Link to="/login">Sign in</Link>
+      </p>
     </div>
   );
 };

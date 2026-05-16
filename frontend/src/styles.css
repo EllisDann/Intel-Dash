@@ -42,17 +42,30 @@ input {
 .auth-card,
 .dashboard-card {
   width: min(520px, 100%);
-  background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 1rem;
-  box-shadow: 0 20px 55px rgba(15, 23, 42, 0.08);
-  padding: 2rem;
+  background: #1e293b;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 1.5rem;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  padding: 2.5rem;
 }
 
 .auth-card h1,
 .dashboard-card h1,
 .dashboard-card h2 {
   margin-top: 0;
+  color: #e2e8f0;
+}
+
+.auth-card .eyebrow {
+  color: #5fecfc;
+}
+
+.auth-card p {
+  color: #94a3b8;
+}
+
+.auth-card a {
+  color: #5fecfc;
 }
 
 form {
@@ -64,14 +77,30 @@ label {
   display: grid;
   gap: 0.5rem;
   font-weight: 600;
+  color: #e2e8f0;
 }
 
 input {
   width: 100%;
   padding: 0.9rem 1rem;
-  border: 1px solid #cbd5e1;
+  border: 1px solid rgba(148, 163, 184, 0.24);
   border-radius: 0.75rem;
-  background: #f8fafc;
+  background: #0f172a;
+  color: #e2e8f0;
+}
+
+input:focus {
+  outline: none;
+  border-color: #0183ff;
+}
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px #0f172a inset !important;
+  -webkit-text-fill-color: #e2e8f0 !important;
+  transition: background-color 5000s ease-in-out 0s;
 }
 
 button {
@@ -90,7 +119,7 @@ button:disabled {
 }
 
 .error-message {
-  color: #dc2626;
+  color: #f87171;
   margin: 0;
 }
 
