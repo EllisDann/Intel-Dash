@@ -100,4 +100,50 @@ export class GitHubIntegration extends BaseIntegration {
     });
     return { account: response.data };
   }
+
+  // Fetch deployments for a given repo owner/repo
+  async fetchDeployments(owner: string, repo: string) {
+    if (!this.integrationId) {
+      throw new Error('Integration id is required');
+    }
+    const credentialResult = await query('SELECT encrypted_credential FROM integration_credentials WHERE integration_id = $1 LIMIT 1', [this.integrationId]);
+    if (credentialResult.rowCount === 0) {
+      throw new Error('No GitHub credentials available');
+    }
+
+    const token = decrypt(credentialResult.rows[0].encrypted_credential);
+    try {
+      const response = await axios.get(`https://api.github.com/repos/${owner}/${repo}/deployments`, {
+        headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github.v3+json' },
+        params: { per_page: 100, sort: 'created', direction: 'desc' },
+      });
+      return response.data || [];
+    } catch (err) {
+      console.error(`Failed to fetch deployments for ${owner}/${repo}:`, err);
+      return [];
+    }
+  }
+
+  // Fetch deployment statuses for a specific deployment
+  async fetchDeploymentStatuses(owner: string, repo: string, deploymentId: number) {
+    if (!this.integrationId) {
+      throw new Error('Integration id is required');
+    }
+    const credentialResult = await query('SELECT encrypted_credential FROM integration_credentials WHERE integration_id = $1 LIMIT 1', [this.integrationId]);
+    if (credentialResult.rowCount === 0) {
+      throw new Error('No GitHub credentials available');
+    }
+
+    const token = decrypt(credentialResult.rows[0].encrypted_credential);
+    try {
+      const response = await axios.get(`https://api.github.com/repos/${owner}/${repo}/deployments/${deploymentId}/statuses`, {
+        headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github.v3+json' },
+        params: { per_page: 100 },
+      });
+      return response.data || [];
+    } catch (err) {
+      console.error(`Failed to fetch deployment statuses for ${owner}/${repo}/${deploymentId}:`, err);
+      return [];
+    }
+  }
 }

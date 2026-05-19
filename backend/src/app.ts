@@ -6,6 +6,8 @@ import dotenv from 'dotenv';
 import authRouter from './routes/auth';
 import userRouter from './routes/user';
 import integrationsRouter from './routes/integrations';
+import dashboardRouter from './routes/dashboard';
+import metricsRouter from './routes/metrics';
 
 const envPath = path.resolve(process.cwd(), '.env');
 const parentEnvPath = path.resolve(process.cwd(), '..', '.env');
@@ -28,6 +30,8 @@ app.get('/api/health', (_req, res) => {
 app.use(authRouter);
 app.use(userRouter);
 app.use(integrationsRouter);
+app.use(dashboardRouter);
+app.use(metricsRouter);
 
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   if (err?.type === 'entity.parse.failed') {
