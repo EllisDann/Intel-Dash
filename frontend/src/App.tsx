@@ -9,6 +9,7 @@ import IntegrationsPage from './pages/IntegrationsPage';
 import OAuthCallbackPage from './pages/OAuthCallbackPage';
 import OnboardingPage from './pages/OnboardingPage';
 import LandingPage from './pages/LandingPage';
+import SettingsPage from './pages/SettingsPage';
 
 const MainLayout = () => (
   <>
@@ -56,6 +57,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <IntegrationsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/settings"
+              element={
+                <ProtectedRoute>
+                  <SettingsPage />
                 </ProtectedRoute>
               }
             />
