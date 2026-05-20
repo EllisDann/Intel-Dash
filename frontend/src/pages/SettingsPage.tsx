@@ -1,9 +1,11 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../auth/AuthContext';
 import MetricCard from '../components/MetricCard';
 
 const SettingsPage: React.FC = () => {
   const navigate = useNavigate();
+  const { logout } = useAuth();
 
   const organization = {
     name: 'testteam',
@@ -58,9 +60,10 @@ const SettingsPage: React.FC = () => {
 
             <div className="settings-card">
               <h3>Quick actions</h3>
-              <div style={{ display: 'flex', gap: 8 }}>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 <button type="button" className="small-action">Sync integrations</button>
                 <button type="button" className="small-action">Upgrade plan</button>
+                <button type="button" className="small-action" onClick={logout}>Log out</button>
               </div>
             </div>
           </div>

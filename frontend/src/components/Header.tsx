@@ -9,10 +9,12 @@ const Header = () => {
   return (
     <header className="app-header">
       <div className="header-container">
-        <Link to="/" className="header-logo">
-          <img src="/logonobg.png" alt="IntelBoard" />
-          <span>IntelBoard</span>
-        </Link>
+        {!isDashboard && (
+          <Link to="/" className="header-logo">
+            <img src="/logonobg.png" alt="IntelBoard" />
+            <span>IntelBoard</span>
+          </Link>
+        )}
 
         {!isDashboard && (
           <nav className="header-nav">
@@ -24,15 +26,7 @@ const Header = () => {
         )}
 
         <div className="header-actions">
-          {isAuthenticated ? (
-            <>
-              <Link to="/dashboard" className="header-link">Dashboard</Link>
-              <Link to="/integrations" className="header-link">Integrations</Link>
-              <button onClick={logout} className="header-button header-button-logout">
-                Log out
-              </button>
-            </>
-          ) : (
+          {!isAuthenticated && (
             <>
               <Link to="/login" className="header-link">Log in</Link>
               <Link to="/register" className="header-button header-button-primary">

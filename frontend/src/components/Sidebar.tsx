@@ -2,10 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 
 const dashboards = [
-  { id: 'overview', label: 'Overview' },
-  { id: 'team', label: 'Team' },
-  { id: 'repositories', label: 'Repositories' },
-  { id: 'ai-insights', label: 'AI Insights' },
+  { id: 'activity-board', label: 'Activity Board' },
 ];
 
 const Sidebar: React.FC = () => {
@@ -14,16 +11,23 @@ const Sidebar: React.FC = () => {
 
   return (
     <aside className={`sidebar ${collapsed ? 'sidebar--collapsed' : ''}`} aria-label="Dashboard navigation">
+      <div className="sidebar__brand">
+        <Link to="/dashboard" className="sidebar__brand-link">
+          <img src="/logonobg.png" alt="IntelBoard" className="sidebar__brand-logo" />
+          {!collapsed && <span className="sidebar__brand-text">IntelBoard</span>}
+        </Link>
+      </div>
+
       <div className="sidebar__top">
         <button className="sidebar__toggle" onClick={toggle} aria-expanded={!collapsed}>
           {collapsed ? '»' : '«'}
         </button>
-        {!collapsed && <div className="sidebar__title">Dashboards</div>}
       </div>
 
+      <div className="sidebar__menu-header">Dashboards</div>
       <nav className="sidebar__menu">
         {dashboards.map((d) => (
-          <Link key={d.id} to={`#${d.id}`} className={`sidebar__item ${d.id === 'overview' ? 'active' : ''}`}>
+          <Link key={d.id} to={`#${d.id}`} className={`sidebar__item ${d.id === 'activity-board' ? 'active' : ''}`}>
             <span className="sidebar__item-label">{d.label}</span>
           </Link>
         ))}
