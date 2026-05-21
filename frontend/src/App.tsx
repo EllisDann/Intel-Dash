@@ -10,12 +10,13 @@ import OAuthCallbackPage from './pages/OAuthCallbackPage';
 import OnboardingPage from './pages/OnboardingPage';
 import LandingPage from './pages/LandingPage';
 import SettingsPage from './pages/SettingsPage';
+import { SidebarProvider } from './contexts/SidebarContext';
 
 const MainLayout = () => (
-  <>
+  <SidebarProvider>
     <Header />
     <Outlet />
-  </>
+  </SidebarProvider>
 );
 
 const AuthLayout = () => (

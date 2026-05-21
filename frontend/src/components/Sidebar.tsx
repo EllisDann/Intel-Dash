@@ -1,18 +1,19 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
+import { useSidebar } from '../contexts/SidebarContext';
 
 const dashboards = [
   { id: 'activity-board', label: 'Activity Board' },
 ];
 
 const Sidebar: React.FC = () => {
-  const [collapsed, setCollapsed] = useState(false);
-  const toggle = () => setCollapsed((c) => !c);
+  const { collapsed, toggleCollapsed } = useSidebar();
+  const toggle = () => toggleCollapsed();
 
   return (
     <aside className={`sidebar ${collapsed ? 'sidebar--collapsed' : ''}`} aria-label="Dashboard navigation">
       <div className="sidebar__brand">
-        <Link to="/dashboard" className="sidebar__brand-link">
+        <Link to="/" className="sidebar__brand-link">
           <img src="/logonobg.png" alt="IntelBoard" className="sidebar__brand-logo" />
           {!collapsed && <span className="sidebar__brand-text">IntelBoard</span>}
         </Link>
@@ -35,6 +36,7 @@ const Sidebar: React.FC = () => {
 
       <div className="sidebar__footer">
         <Link to="/settings" className="sidebar__settings">
+          <span className="sidebar__settings-icon" aria-hidden="true">⚙</span>
           <span className="sidebar__settings-label">Settings</span>
         </Link>
       </div>

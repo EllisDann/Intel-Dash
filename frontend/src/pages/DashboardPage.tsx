@@ -63,6 +63,7 @@ const DashboardPage: React.FC = () => {
   const [error, setError] = useState('');
 
   const [metrics, setMetrics] = useState<any | null>(null);
+  const [repositories, setRepositories] = useState<any[]>([]);
 
   const [startDate, setStartDate] = useState<string>(() => {
     const d = new Date();
@@ -99,33 +100,45 @@ const DashboardPage: React.FC = () => {
     fetchMetrics();
   }, [startDate, endDate]);
 
-  
+  useEffect(() => {
+    const fetchRepositories = async () => {
+      try {
+        const resp = await api.get('/api/dashboard/repositories', { params: { startDate, endDate } });
+        setRepositories(resp.data || []);
+      } catch (err: any) {
+        console.warn('Unable to load repositories', err?.response?.data || err.message);
+      }
+    };
+
+    fetchRepositories();
+  }, [startDate, endDate]);
 
   const NO_DATA_TEXT = 'No data available';
 
-  const cycleCurrent = getSeriesValue(metrics?.cycleTimeSeries, 'avg_hours');
-  const cycleTrend = getSeriesDelta(metrics?.cycleTimeSeries, 'avg_hours');
-  const deploymentCurrent = getSeriesValue(metrics?.deploymentFrequencySeries, 'deployments');
-  const deploymentTrend = getSeriesDelta(metrics?.deploymentFrequencySeries, 'deployments');
+  const formatValue = (value: number | string | null | undefined) =>
+    value !== null && value !== undefined ? value : NO_DATA_TEXT;
 
   return (
-    <div className="page-shell">
+    <div className="page-shell page-shell--dashboard">
       <div className="dashboard-layout">
         <Sidebar />
         <main className="dashboard-main">
           <div className="dashboard-card dashboard-card--wide dashboard-card--clean">
-        <div className="filter-bar">
-          <div className="filter-left">
-            <div className="filter-item">
-              <label>From</label>
-              <DatePickerInput value={startDate} onChange={(value) => setStartDate(value)} />
+            <div className="reporting-period-wrapper">
+              <div className="reporting-period-button">
+                Reporting Period
+                <div className="reporting-period-menu">
+                  <div className="reporting-period-item">
+                    <label>From</label>
+                    <DatePickerInput value={startDate} onChange={(value) => setStartDate(value)} />
+                  </div>
+                  <div className="reporting-period-item">
+                    <label>To</label>
+                    <DatePickerInput value={endDate} onChange={(value) => setEndDate(value)} />
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="filter-item">
-              <label>To</label>
-              <DatePickerInput value={endDate} onChange={(value) => setEndDate(value)} />
-            </div>
-          </div>
-        </div>
 
         {loading ? (
           <p>Loading your dashboard...</p>
@@ -136,40 +149,81 @@ const DashboardPage: React.FC = () => {
             {/* Organization summary moved to Settings page */}
 
             <section className="dashboard-section">
-              <div className="section-header">
-                <div>
-                  <h2>Executive KPI overview</h2>
-                  <p className="section-description">Top metrics for the team, updated for your selected range.</p>
-                </div>
+              <div className="section-subheader">
+                <h3>Pull Requests & Commits Metrics</h3>
               </div>
 
               <div className="dashboard-kpi-grid">
                 <MetricCard
-                  title="Lead Time for Changes"
-                  value={cycleCurrent ? `${cycleCurrent.toFixed(1)} hrs` : NO_DATA_TEXT}
-                  delta={cycleTrend !== null ? formatDelta(cycleTrend, true) : '—'}
-                  subtitle="Average cycle time in selected range"
-                  status={cycleTrend !== null && cycleTrend < 0 ? 'good' : cycleTrend !== null && cycleTrend > 0 ? 'critical' : 'neutral'}
+                  title="Opened PRs"
+                  value={formatValue(metrics?.openedPRs ?? metrics?.open_pr_count ?? metrics?.openPRs)}
+                  subtitle="PRs opened in the selected range"
+                  status="neutral"
                 />
                 <MetricCard
-                  title="Deployment Frequency"
-                  value={deploymentCurrent !== null ? `${deploymentCurrent} / day` : NO_DATA_TEXT}
-                  delta={deploymentTrend !== null ? formatDelta(deploymentTrend) : '—'}
-                  subtitle="Recent deployment cadence"
-                  status={deploymentTrend !== null && deploymentTrend >= 0 ? 'good' : 'warning'}
+                  title="PRs Completed"
+                  value={formatValue(metrics?.completedPRs ?? metrics?.completed_pr_count ?? metrics?.closedPRs)}
+                  subtitle="PRs completed in the selected range"
+                  status="neutral"
                 />
                 <MetricCard
-                  title="Change Failure Rate"
-                  value={metrics?.failureRate !== undefined ? `${metrics.failureRate.toFixed(1)}%` : NO_DATA_TEXT}
-                  subtitle="Deployments causing incidents"
-                  status={typeof metrics?.failureRate === 'number' ? (metrics.failureRate <= 10 ? 'good' : metrics.failureRate <= 20 ? 'warning' : 'critical') : 'neutral'}
+                  title="Average PR Size"
+                  value={formatValue(metrics?.averagePRSize ?? metrics?.avg_pr_size ?? metrics?.avgPRSize)}
+                  subtitle="Average size per pull request"
+                  status="neutral"
                 />
                 <MetricCard
-                  title="Mean Time to Restore (MTTR)"
-                  value={metrics?.mttr !== undefined ? `${metrics.mttr.toFixed(1)} hrs` : NO_DATA_TEXT}
-                  subtitle="Average incident recovery time"
-                  status={typeof metrics?.mttr === 'number' ? (metrics.mttr <= 2 ? 'good' : metrics.mttr <= 4 ? 'warning' : 'critical') : 'neutral'}
+                  title="Commits Made"
+                  value={formatValue(metrics?.commitsMade ?? metrics?.commitCount ?? metrics?.commits)}
+                  subtitle="Commits made in the selected range"
+                  status="neutral"
                 />
+                <MetricCard
+                  title="PR Authors"
+                  value={formatValue(metrics?.prAuthors ?? metrics?.pr_authors ?? metrics?.authors)}
+                  subtitle="Active developers with PR activity"
+                  status="neutral"
+                />
+                <MetricCard
+                  title="Total Lines of Code"
+                  value={formatValue(metrics?.totalLinesOfCode ?? metrics?.total_loc ?? metrics?.loc)}
+                  subtitle="Lines of code changed in the range"
+                  status="neutral"
+                />
+                <div className="repositories-card">
+                  <div className="repositories-card__header">
+                    <h4>Repositories Data</h4>
+                    <p className="repositories-card__subtitle">Top repos by activity in the selected range</p>
+                  </div>
+                  <div className="repositories-table-wrapper">
+                    <table className="repositories-table">
+                      <thead>
+                        <tr>
+                          <th>Repository</th>
+                          <th>Commits made</th>
+                          <th>Opened PRs</th>
+                          <th>LOC</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {repositories.length > 0 ? (
+                          repositories.slice(0, 5).map((repo) => (
+                            <tr key={repo.id}>
+                              <td>{repo.id}</td>
+                              <td>{repo.throughput ?? NO_DATA_TEXT}</td>
+                              <td>{repo.openedPRs ?? repo.open_prs ?? NO_DATA_TEXT}</td>
+                              <td>{repo.loc ?? repo.total_loc ?? NO_DATA_TEXT}</td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan={4}>No data</td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </div>
             </section>
           </>

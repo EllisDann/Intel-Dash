@@ -39,12 +39,17 @@ input {
   padding: 2rem 1.5rem;
 }
 
+.page-shell.page-shell--dashboard {
+  justify-content: flex-start;
+  padding-left: 1.5rem;
+}
+
 /* Dashboard two-column layout with collapsible sidebar */
 .dashboard-layout {
   display: flex;
   gap: 1rem;
   width: 100%;
-  max-width: 1180px;
+  max-width: min(1400px, 100%);
   align-items: flex-start;
 }
 
@@ -73,37 +78,97 @@ input {
 }
 
 .sidebar__top {
+  position: absolute;
+  top: 5.2rem;
+  right: -0.4rem;
   display: flex;
-  justify-content: flex-end;
-  padding: 0.5rem 0.75rem;
+  justify-content: center;
+  padding: 0;
+}
+
+.sidebar.sidebar--collapsed .sidebar__top {
+  top: 4.4rem;
 }
 
 .sidebar__toggle {
-  background: transparent;
-  border: none;
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.14);
+  border-radius: 9999px;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
   font-weight: 700;
+  font-size: 0.85rem;
+  line-height: 1;
+  text-align: center;
   cursor: pointer;
   color: var(--accent-blue);
+  padding: 0;
 }
 
 .sidebar__brand {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 1rem 1rem 0.75rem;
+  padding: 1rem 0.5rem 0.75rem;
   border-bottom: 1px solid rgba(15, 23, 42, 0.18);
 }
 
 .sidebar__brand-link {
   display: flex;
   align-items: center;
-  gap: 0.1rem;
+  gap: 0.05rem;
   text-decoration: none;
 }
 
 .sidebar__brand-logo {
-  height: 56px;
+  height: 44px;
   width: auto;
+}
+
+.sidebar.sidebar--collapsed .sidebar__brand {
+  justify-content: center;
+}
+
+.sidebar.sidebar--collapsed .sidebar__brand-link {
+  gap: 0;
+}
+
+.sidebar.sidebar--collapsed .sidebar__menu-header,
+.sidebar.sidebar--collapsed .sidebar__item-label,
+.sidebar.sidebar--collapsed .sidebar__settings-label {
+  display: none;
+}
+
+.sidebar.sidebar--collapsed .sidebar__item.active {
+  background: transparent;
+  box-shadow: none;
+  color: #e2e8f0;
+}
+
+.sidebar.sidebar--collapsed .sidebar__settings {
+  justify-content: center;
+  width: auto;
+  padding: 0.45rem;
+}
+
+.sidebar.sidebar--collapsed .sidebar__settings:hover {
+  background: #ffffff;
+}
+
+.sidebar.sidebar--collapsed .sidebar__settings-label {
+  display: none;
+}
+
+.sidebar.sidebar--collapsed .sidebar__settings-icon {
+  margin: 0 auto;
+}
+
+.sidebar.sidebar--collapsed .sidebar__item:hover {
+  background: transparent;
 }
 
 .sidebar__brand-text {
@@ -163,19 +228,38 @@ input {
 
 .sidebar__footer {
   margin-top: auto;
-  padding: 0.75rem;
+  padding: 0.75rem 0.75rem 0.5rem;
 }
 
 .sidebar__settings {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 0.65rem;
-  border-radius: 0.5rem;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.45rem 0.9rem;
+  border-radius: 0.35rem;
   color: #0f172a;
   text-decoration: none;
-  border: 1px solid var(--surface-border);
-  background: var(--surface);
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  transition: background 160ms ease, color 160ms ease, transform 160ms ease;
+  box-sizing: border-box;
+}
+
+.sidebar__settings:hover {
+  background: #f8fafc;
+}
+
+.sidebar__settings-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+}
+
+.sidebar__settings-label {
+  font-size: 0.85rem;
+  font-weight: 600;
 }
 
 .dashboard-main {
@@ -183,6 +267,8 @@ input {
   transition: margin-left 180ms ease;
   margin-left: 220px; /* default width of sidebar */
   width: calc(100% - 220px);
+  position: relative;
+  padding-top: 1rem;
 }
 
 /* When the sidebar is collapsed, shift the main content over */
@@ -202,13 +288,13 @@ input {
 
 .dashboard-card {
   width: 100%;
-  max-width: 1180px;
+  max-width: min(1300px, 100%);
   background: var(--surface);
   border: 1px solid rgba(15, 23, 42, 0.08);
   border-radius: 1.25rem;
   box-shadow: 0 18px 50px rgba(15, 23, 42, 0.08);
-  padding: 2.5rem;
-  margin: 1.5rem 0;
+  padding: 2rem;
+  margin: 0.75rem 0;
 }
 
 /* Clean variant: keep container spacing but remove dark surface so inner cards show as white */
@@ -401,13 +487,77 @@ button:disabled {
 
 .dashboard-kpi-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 1rem;
-  margin-top: 1rem;
+  grid-template-columns: repeat(4, minmax(280px, 1fr));
+  grid-auto-rows: minmax(220px, auto);
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.repositories-card {
+  grid-column: span 2;
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 1rem;
+  padding: 0.7rem 0.9rem 0.9rem;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+}
+
+.repositories-card__header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.repositories-card__subtitle {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.95rem;
+}
+
+.repositories-table-wrapper {
+  overflow-x: auto;
+}
+
+.repositories-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 100%;
+}
+
+.repositories-table th,
+.repositories-table td {
+  text-align: left;
+  padding: 0.85rem 0.75rem;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  font-size: 0.88rem;
+}
+
+.repositories-table th {
+  color: #0f172a;
+  font-weight: 700;
+}
+
+.repositories-table td {
+  color: #475569;
+}
+
+.repositories-table tr:last-child td {
+  border-bottom: none;
+}
+
+@media (max-width: 900px) {
+  .dashboard-kpi-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .repositories-card {
+    grid-column: span 1;
+  }
 }
 
 .dashboard-section {
-  margin-top: 2rem;
+  margin-top: 1.75rem;
 }
 
 .section-header {
@@ -498,13 +648,12 @@ button:disabled {
   background: #ffffff;
   border: 1px solid rgba(15, 23, 42, 0.06);
   border-radius: 0.75rem;
-  padding: 1.25rem;
-  min-height: 150px;
+  padding: 0.5rem 1rem 1.25rem;
+  min-height: 260px;
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
-  color: #0b1220;
-  box-shadow: 0 6px 24px rgba(2,4,58,0.06);
+  gap: 0.2rem;
+  justify-content: flex-start;
 }
 
 .metric-card--good {
@@ -527,29 +676,62 @@ button:disabled {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 1rem;
+  gap: 0.6rem;
+  margin-bottom: 0.25rem;
 }
 
 .metric-card__title {
   font-weight: 700;
   color: #0b1220;
+  font-size: 0.95rem;
 }
 
 .metric-card__delta {
   font-weight: 700;
   color: #6b7280;
+  font-size: 0.85rem;
 }
 
 .metric-card__value {
-  font-size: 2.75rem;
+  font-size: 2rem;
   font-weight: 900;
-  line-height: 1;
+  line-height: 1.1;
   color: #f59e0b; /* warm yellow */
 }
 
 .metric-card__subtitle {
   color: #6b7280;
   line-height: 1.4;
+  font-size: 0.85rem;
+}
+
+.section-subheader {
+  margin-bottom: 1rem;
+  margin-left: 2rem;
+}
+
+.section-subheader h3 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.repositories-card__header h4 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.repositories-card__subtitle {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.85rem;
+}
+
+.repositories-table th,
+.repositories-table td {
+  text-align: left;
+  padding: 0.85rem 0.75rem;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  font-size: 0.82rem;
 }
 
 .metric-card__extra {
@@ -620,6 +802,28 @@ a {
   min-height: 38px;
 }
 
+/* Larger header for the landing / marketing pages */
+.app-header--landing {
+  min-height: 72px;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
+}
+
+.app-header--landing .header-container {
+  padding: 0.9rem 1rem;
+  align-items: center;
+}
+
+.app-header--landing .header-logo {
+  font-size: 1.35rem;
+  gap: 0.4rem;
+  margin-right: auto;
+}
+
+.app-header--landing .header-logo img {
+  height: 32px;
+  width: auto;
+}
+
 .header-container {
   max-width: 1180px;
   margin: 0 auto;
@@ -649,6 +853,16 @@ a {
   display: flex;
   gap: 2.5rem;
   flex-grow: 1;
+}
+
+.header-page-title {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #0f172a;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
 }
 
 .header-nav a {
@@ -903,6 +1117,105 @@ input[type="date"] {
   }
   .metrics-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+.reporting-period-wrapper {
+  position: fixed;
+  top: 56px; /* sit below the header */
+  left: calc(220px + 12px); /* offset from left by sidebar width + small gap */
+  margin: 0;
+  z-index: 60;
+}
+
+/* When sidebar is collapsed, nudge the button inward */
+.sidebar.sidebar--collapsed + .dashboard-main .reporting-period-wrapper {
+  left: calc(56px + 12px);
+}
+
+.reporting-period-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.45rem 0.7rem;
+  gap: 0.35rem;
+  border-radius: 0.6rem;
+  border: 1px solid rgba(15, 23, 42, 0.10);
+  background: white;
+  color: #0f172a;
+  font-weight: 700;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+}
+
+.reporting-period-button::after {
+  content: '▾';
+  display: inline-block;
+  font-size: 0.65rem;
+  color: #475569;
+  margin-left: 6px;
+}
+
+.reporting-period-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.05);
+  border-color: rgba(37, 99, 235, 0.24);
+}
+
+.reporting-period-menu {
+  position: absolute;
+  top: calc(100% + 0.35rem);
+  left: 0;
+  min-width: 18.5rem;
+  padding: 0.9rem;
+  border-radius: 0.85rem;
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-6px);
+  transition: opacity 160ms ease, transform 160ms ease, visibility 160ms ease;
+  z-index: 40;
+}
+
+.reporting-period-button:hover .reporting-period-menu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.reporting-period-item {
+  display: grid;
+  gap: 0.5rem;
+  margin-bottom: 0.85rem;
+}
+
+.reporting-period-item:last-child {
+  margin-bottom: 0;
+}
+
+.reporting-period-item label {
+  font-size: 0.85rem;
+  color: #475569;
+  font-weight: 600;
+}
+
+.reporting-period-item .datepicker-input {
+  width: 100%;
+}
+
+@media (max-width: 900px) {
+  .reporting-period-button {
+    width: 100%;
+  }
+  .reporting-period-menu {
+    min-width: auto;
+    width: 100%;
+    left: 0;
+    right: 0;
   }
 }
 
