@@ -42,7 +42,7 @@ router.post('/auth/register', async (req, res) => {
     const tenant = tenantResult.rows[0];
     const passwordHash = await hashPassword(password);
     const userResult = await query(
-      'INSERT INTO users (tenant_id, email, password_hash, role) VALUES ($1, $2, $3, $4) RETURNING id, email, role',
+      'INSERT INTO users (tenant_id, email, password_hash, role) VALUES ($1, $2, $3, $4) RETURNING id, email, role, profile_image',
       [tenant.id, normalizedEmail, passwordHash, 'admin']
     );
 
@@ -58,7 +58,12 @@ router.post('/auth/register', async (req, res) => {
 
     return res.status(201).json({
       token,
-      user,
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        profileImage: user.profile_image,
+      },
       tenant,
       expiresIn: 7 * 24 * 60 * 60,
     });
@@ -84,7 +89,7 @@ router.post('/auth/login', async (req, res) => {
     }
 
     const userResult = await query(
-      'SELECT u.id, u.email, u.password_hash, u.role, u.tenant_id, t.name as tenant_name FROM users u INNER JOIN tenants t ON u.tenant_id = t.id WHERE lower(u.email) = lower($1) AND u.is_active = true',
+      'SELECT u.id, u.email, u.password_hash, u.role, u.profile_image, u.tenant_id, t.name as tenant_name FROM users u INNER JOIN tenants t ON u.tenant_id = t.id WHERE lower(u.email) = lower($1) AND u.is_active = true',
       [email]
     );
 
@@ -110,7 +115,12 @@ router.post('/auth/login', async (req, res) => {
 
     return res.status(200).json({
       token,
-      user: { id: user.id, email: user.email, role: user.role },
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        profileImage: user.profile_image,
+      },
       tenant: { id: user.tenant_id, name: user.tenant_name },
       expiresIn: 7 * 24 * 60 * 60,
     });

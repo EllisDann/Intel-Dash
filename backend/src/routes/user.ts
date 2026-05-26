@@ -10,7 +10,7 @@ router.get('/api/user/profile', authenticate, async (req, res) => {
   try {
     const user = (req as AuthenticatedRequest).user;
     const userResult = await query(
-      'SELECT u.id, u.email, u.role, u.created_at, u.updated_at, t.id as tenant_id, t.name as tenant_name FROM users u JOIN tenants t ON u.tenant_id = t.id WHERE u.id = $1',
+      'SELECT u.id, u.email, u.name, u.role, u.profile_image, u.created_at, u.updated_at, t.id as tenant_id, t.name as tenant_name FROM users u JOIN tenants t ON u.tenant_id = t.id WHERE u.id = $1',
       [user?.sub]
     );
 
@@ -22,7 +22,9 @@ router.get('/api/user/profile', authenticate, async (req, res) => {
     return res.json({
       id: currentUser.id,
       email: currentUser.email,
+      name: currentUser.name,
       role: currentUser.role,
+      profileImage: currentUser.profile_image,
       createdAt: currentUser.created_at,
       updatedAt: currentUser.updated_at,
       tenant: {
@@ -39,7 +41,7 @@ router.get('/api/user/profile', authenticate, async (req, res) => {
 router.put('/api/user/profile', authenticate, async (req, res) => {
   try {
     const user = (req as AuthenticatedRequest).user;
-    const { email, tenant_name } = req.body;
+    const { email, name, tenant_name, profile_image } = req.body;
 
     if (email && !emailRegex.test(email)) {
       return res.status(400).json({ error: 'Invalid email format' });
@@ -49,21 +51,49 @@ router.put('/api/user/profile', authenticate, async (req, res) => {
       return res.status(401).json({ error: 'Invalid user session' });
     }
 
-    await query('UPDATE tenants SET name = COALESCE($1, name), updated_at = NOW() WHERE id = $2', [
-      tenant_name || null,
-      user.tenant_id,
-    ]);
+    // Only update tenant if tenant_name is provided
+    if (tenant_name && user.tenant_id) {
+      await query('UPDATE tenants SET name = $1, updated_at = NOW() WHERE id = $2', [
+        tenant_name,
+        user.tenant_id,
+      ]);
+    }
 
-    const updated = await query(
-      'UPDATE users SET email = COALESCE($1, email), updated_at = NOW() WHERE id = $2 RETURNING id, email, role, updated_at',
-      [email ? email.toLowerCase() : null, user.sub]
-    );
+    let updateQuery = 'UPDATE users SET email = COALESCE($1, email)';
+    const updateParams: Array<any> = [email ? email.toLowerCase() : null];
 
-    const tenantResult = await query('SELECT id, name FROM tenants WHERE id = $1', [user.tenant_id]);
+    if (Object.prototype.hasOwnProperty.call(req.body, 'name')) {
+      updateQuery += ', name = $2';
+      updateParams.push(name);
+    }
 
+    if (Object.prototype.hasOwnProperty.call(req.body, 'profile_image')) {
+      const nextParamIndex = updateParams.length + 1;
+      updateQuery += `, profile_image = $${nextParamIndex}`;
+      updateParams.push(profile_image);
+    }
+
+    updateQuery += ', updated_at = NOW()';
+    updateParams.push(user.sub);
+    updateQuery += ` WHERE id = $${updateParams.length} RETURNING id, email, name, role, profile_image, updated_at`;
+
+    const updated = await query(updateQuery, updateParams);
+
+    const tenantResult = user.tenant_id
+      ? await query('SELECT id, name FROM tenants WHERE id = $1', [user.tenant_id])
+      : null;
+
+    const updatedUser = updated.rows[0];
     return res.json({
-      user: updated.rows[0],
-      tenant: tenantResult.rows[0],
+      user: {
+        id: updatedUser.id,
+        email: updatedUser.email,
+        name: updatedUser.name,
+        role: updatedUser.role,
+        profileImage: updatedUser.profile_image,
+        updatedAt: updatedUser.updated_at,
+      },
+      tenant: tenantResult?.rows[0] || null,
     });
   } catch (error) {
     console.error(error);

@@ -27,6 +27,14 @@ const runSqlFile = async (pool, fileName) => {
   await pool.query(sql);
 };
 
+const loadMigrationFiles = () => {
+  const migrationsDir = path.resolve(repoRoot, 'database', 'migrations');
+  return fs
+    .readdirSync(migrationsDir)
+    .filter((file) => file.endsWith('.sql'))
+    .sort();
+};
+
 const bootstrap = async () => {
   const adminPool = new Pool({ connectionString: adminUrl.toString() });
   try {
@@ -45,8 +53,10 @@ const bootstrap = async () => {
 
   const appPool = new Pool({ connectionString: databaseUrl });
   try {
-    await runSqlFile(appPool, '0001_initial.sql');
-    await runSqlFile(appPool, '0002_add_integrations_and_trial_metadata.sql');
+    const migrations = loadMigrationFiles();
+    for (const migration of migrations) {
+      await runSqlFile(appPool, migration);
+    }
     console.log('Migrations applied successfully.');
   } finally {
     await appPool.end();

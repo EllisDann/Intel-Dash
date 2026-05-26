@@ -1,5 +1,5 @@
 {
-  "name": "intelboard-backend",
+  "name": "intel-dash-backend",
   "version": "0.1.0",
   "private": true,
   "main": "dist/index.js",
@@ -7,6 +7,7 @@
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js",
+    "init-db": "node scripts/init-db.js",
     "seed": "node scripts/seed-sample-data.js",
     "test:metrics": "node scripts/test-metrics.js"
   },
