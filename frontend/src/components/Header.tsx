@@ -6,14 +6,23 @@ const Header = () => {
   const { isAuthenticated } = useAuth();
   const location = useLocation();
   const { collapsed } = useSidebar();
-  const isDashboard = isAuthenticated && (location.pathname === '/dashboard' || location.pathname === '/integrations' || location.pathname === '/onboarding');
+  const isSettingsPage = location.pathname === '/settings';
+  const isBillingPage = location.pathname === '/billing';
+  const isConnectionsPage = location.pathname === '/connections';
+  const isTeamManagementPage = location.pathname === '/team-management';
+  const isDashboard = isAuthenticated && (location.pathname === '/dashboard' || location.pathname === '/integrations' || location.pathname === '/onboarding' || isConnectionsPage);
   const showAuthButtons = !isAuthenticated || location.pathname === '/';
   const dashboardTitleMap: Record<string, string> = {
     '/dashboard': 'Activity Board',
     '/integrations': 'Integrations',
     '/onboarding': 'Onboarding',
+    '/connections': 'Connections',
   };
   const dashboardTitle = dashboardTitleMap[location.pathname] || '';
+
+  if (isSettingsPage || isBillingPage || isTeamManagementPage) {
+    return null;
+  }
 
   return (
     <header className={`app-header ${!isDashboard ? 'app-header--landing' : ''}`}>
@@ -27,8 +36,8 @@ const Header = () => {
           </div>
         ) : (
           <Link to="/" className="header-logo">
-            <img src="/logonobg.png" alt="IntelBoard" />
-            <span>IntelBoard</span>
+            <img src="/logonobg.png" alt="Intel-Dash" />
+            <span>Intel-Dash</span>
           </Link>
         )}
 
@@ -37,7 +46,7 @@ const Header = () => {
             <a href="#product">Product</a>
             <a href="#solutions">Solutions</a>
             <a href="#resources">Resources</a>
-            <a href="#pricing">Pricing</a>
+            <Link to="/billing">Pricing</Link>
           </nav>
         )}
 

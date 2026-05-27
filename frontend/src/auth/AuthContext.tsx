@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import api from '../api';
 
-interface User { id: string; email: string; role: string; }
+interface User { id: string; email: string; role: string; name?: string; profileImage?: string | null; }
 interface Tenant { id: string; name: string; trialStartDate: string | null; trialEndDate: string | null; isTrialActive: boolean; paymentStatus: string; }
 
 interface AuthContextValue {
@@ -11,13 +11,13 @@ interface AuthContextValue {
   tenant: Tenant | null;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string) => Promise<void>;
-  updateProfile: (payload: { email?: string; tenant_name?: string }) => Promise<void>;
+  updateProfile: (payload: { email?: string; tenant_name?: string; profile_image?: string | null; name?: string }) => Promise<void>;
   logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-const LOCAL_STORAGE_TOKEN_KEY = 'intelboard_token';
+const LOCAL_STORAGE_TOKEN_KEY = 'intel_dash_token';
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [token, setToken] = useState<string | null>(() => localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY));
@@ -33,7 +33,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     try {
       const response = await api.get('/api/user/profile');
-      setUser(response.data);
+      setUser({
+        id: response.data.id,
+        email: response.data.email,
+        role: response.data.role,
+        name: response.data.name || undefined,
+        profileImage: response.data.profileImage || null,
+      });
       setTenant(response.data.tenant);
     } catch (error) {
       localStorage.removeItem(LOCAL_STORAGE_TOKEN_KEY);
@@ -70,7 +76,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setTenant(response.data.tenant);
   };
 
-  const updateProfile = async (payload: { email?: string; tenant_name?: string }) => {
+  const updateProfile = async (payload: { email?: string; tenant_name?: string; profile_image?: string | null; name?: string }) => {
     const response = await api.put('/api/user/profile', payload);
     setUser(response.data.user);
     setTenant(response.data.tenant);

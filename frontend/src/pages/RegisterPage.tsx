@@ -28,8 +28,8 @@ const RegisterPage = () => {
   return (
     <div className="auth-card">
       <Link to="/" className="header-logo" style={{ marginBottom: '2rem' }}>
-        <img src="/logonobg.png" alt="IntelBoard" style={{ height: '48px', width: 'auto' }} />
-        <span style={{ color: 'white' }}>IntelBoard</span>
+        <img src="/logonobg.png" alt="Intel-Dash" style={{ height: '48px', width: 'auto' }} />
+        <span style={{ color: 'white' }}>Intel-Dash</span>
       </Link>
       <h1>Create an account</h1>
       <form onSubmit={handleSubmit}>

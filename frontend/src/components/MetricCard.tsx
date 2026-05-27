@@ -6,12 +6,13 @@ interface Props {
   delta?: string;
   subtitle?: string;
   status?: 'good' | 'warning' | 'critical' | 'neutral';
+  className?: string;
   children?: React.ReactNode;
 }
 
-const MetricCard: React.FC<Props> = ({ title, value, delta, subtitle, status = 'neutral', children }) => {
+const MetricCard: React.FC<Props> = ({ title, value, delta, subtitle, status = 'neutral', className = '', children }) => {
   return (
-    <div className={`metric-card metric-card--${status}`}>
+    <div className={`metric-card metric-card--${status} ${className}`.trim()}>
       <div className="metric-card__header">
         <div className="metric-card__title">{title}</div>
         {delta && <div className="metric-card__delta">{delta}</div>}

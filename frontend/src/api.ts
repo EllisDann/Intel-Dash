@@ -10,7 +10,7 @@ const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('intelboard_token');
+  const token = localStorage.getItem('intel_dash_token');
   if (token && config.headers) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -21,7 +21,7 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('intelboard_token');
+      localStorage.removeItem('intel_dash_token');
       window.location.href = '/login';
     }
     return Promise.reject(error);

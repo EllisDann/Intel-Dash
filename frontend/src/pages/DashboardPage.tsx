@@ -226,6 +226,211 @@ const DashboardPage: React.FC = () => {
                 </div>
               </div>
             </section>
+
+            <section className="dashboard-section">
+              <div className="section-subheader">
+                <h3>Tickets and Issues Data</h3>
+              </div>
+
+              <div className="issues-layout">
+                <div className="issues-metrics-grid">
+                  <MetricCard
+                    title="Opened Issues"
+                    value={formatValue(metrics?.openedIssues ?? metrics?.open_issues ?? metrics?.openIssues)}
+                    subtitle="New issues opened in the range"
+                    status="neutral"
+                  />
+                  <MetricCard
+                    title="Issues Authors"
+                    value={formatValue(metrics?.issueAuthors ?? metrics?.issue_authors ?? metrics?.issueAuthorsCount ?? metrics?.authors)}
+                    subtitle="Unique issue authors in the range"
+                    status="neutral"
+                  />
+                  <MetricCard
+                    title="Story Points Completed"
+                    value={formatValue(metrics?.storyPointsCompleted ?? metrics?.story_points_completed ?? metrics?.storyPoints)}
+                    subtitle="Story points completed in the range"
+                    status="neutral"
+                  />
+                  <MetricCard
+                    title="Closed Issues"
+                    value={formatValue(metrics?.closedIssues ?? metrics?.closed_issues ?? metrics?.closedIssuesCount)}
+                    subtitle="Issues closed in the range"
+                    status="neutral"
+                  />
+                </div>
+
+                <div className="project-issues-card">
+                  <div className="project-issues-card__header">
+                    <h4>Projects Issues Overview</h4>
+                    <p className="project-issues-card__subtitle">Project-level issue counts and trends</p>
+                  </div>
+                  <div className="project-issues-table-wrapper">
+                    <table className="project-issues-table">
+                      <thead>
+                        <tr>
+                          <th>Project</th>
+                          <th>Issues created</th>
+                          <th>Open issues</th>
+                          <th>Closed issues</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {metrics?.projectIssues?.length ? (
+                          metrics.projectIssues.slice(0, 5).map((project: any) => (
+                            <tr key={project.projectId ?? project.id ?? project.name}>
+                              <td>{project.projectName ?? project.name ?? project.project}</td>
+                              <td>{formatValue(project.created ?? project.issuesCreated ?? project.createdIssues)}</td>
+                              <td>{formatValue(project.open ?? project.openIssues ?? project.open_issues)}</td>
+                              <td>{formatValue(project.closed ?? project.closedIssues ?? project.closed_issues)}</td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan={4}>No data</td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section className="dashboard-section">
+              <div className="section-subheader">
+                <h3>Review Data</h3>
+              </div>
+
+              <div className="issues-layout">
+                <div className="issues-metrics-grid">
+                  <MetricCard
+                    title="Total Reviews"
+                    value={formatValue(metrics?.totalReviews ?? metrics?.review_count ?? metrics?.reviews)}
+                    subtitle="Reviews in the selected range"
+                    status="neutral"
+                  />
+                  <MetricCard
+                    title="Reviewers"
+                    value={formatValue(metrics?.reviewers ?? metrics?.reviewersCount ?? metrics?.review_authors)}
+                    subtitle="Unique reviewers participating"
+                    status="neutral"
+                  />
+                  <MetricCard
+                    title="Reviews Distribution"
+                    value={formatValue(metrics?.reviewsDistribution ?? metrics?.review_distribution ?? metrics?.reviewDistribution)}
+                    subtitle="Review activity across PRs"
+                    status="neutral"
+                  />
+                  <MetricCard
+                    title="Avg Reviews for PR Approval"
+                    value={formatValue(metrics?.averageReviewsForApproval ?? metrics?.avg_reviews_approval ?? metrics?.avgReviewCount)}
+                    subtitle="Average reviews needed to approve PRs"
+                    status="neutral"
+                  />
+                </div>
+
+                <div className="project-issues-card">
+                  <div className="project-issues-card__header">
+                    <h4>Reviews Overview</h4>
+                    <p className="project-issues-card__subtitle">Review activity and approval trends by project</p>
+                  </div>
+                  <div className="project-issues-table-wrapper">
+                    <table className="project-issues-table">
+                      <thead>
+                        <tr>
+                          <th>Project</th>
+                          <th>Reviews</th>
+                          <th>Reviewers</th>
+                          <th>Avg reviews / PR</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {metrics?.projectReviews?.length ? (
+                          metrics.projectReviews.slice(0, 5).map((project: any) => (
+                            <tr key={project.projectId ?? project.id ?? project.name}>
+                              <td>{project.projectName ?? project.name ?? project.project}</td>
+                              <td>{formatValue(project.reviews ?? project.reviewCount ?? project.review_count)}</td>
+                              <td>{formatValue(project.reviewers ?? project.reviewerCount ?? project.reviewer_count ?? project.uniqueReviewers)}</td>
+                              <td>{formatValue(project.avgReviewsPerPr ?? project.averageReviews ?? project.avg_reviews ?? project.avgReviewsPerPR)}</td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan={4}>No data</td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section className="dashboard-section">
+              <div className="section-subheader">
+                <h3>Comments Data</h3>
+              </div>
+
+              <div className="issues-layout">
+                <div className="comments-metrics-grid">
+                  <MetricCard
+                    title="Total Comments"
+                    value={formatValue(metrics?.totalComments ?? metrics?.comment_count ?? metrics?.comments)}
+                    subtitle="Comments in the selected range"
+                    status="neutral"
+                  />
+                  <MetricCard
+                    title="Commenters"
+                    value={formatValue(metrics?.commenters ?? metrics?.commentersCount ?? metrics?.comment_authors)}
+                    subtitle="Unique commenters engaging"
+                    status="neutral"
+                  />
+                  <MetricCard
+                    className="metric-card--wide"
+                    title="Comments Distribution"
+                    value={formatValue(metrics?.commentsDistribution ?? metrics?.comment_distribution ?? metrics?.commentsDistribution)}
+                    subtitle="Distribution of comment activity across PRs"
+                    status="neutral"
+                  />
+                </div>
+
+                <div className="project-issues-card">
+                  <div className="project-issues-card__header">
+                    <h4>Discussed Items Overview</h4>
+                    <p className="project-issues-card__subtitle">Comment conversation and discussion volume by project</p>
+                  </div>
+                  <div className="project-issues-table-wrapper">
+                    <table className="project-issues-table">
+                      <thead>
+                        <tr>
+                          <th>Project</th>
+                          <th>Comments</th>
+                          <th>Commenters</th>
+                          <th>Discussed Items</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {metrics?.projectComments?.length ? (
+                          metrics.projectComments.slice(0, 5).map((project: any) => (
+                            <tr key={project.projectId ?? project.id ?? project.name}>
+                              <td>{project.projectName ?? project.name ?? project.project}</td>
+                              <td>{formatValue(project.comments ?? project.commentCount ?? project.comment_count)}</td>
+                              <td>{formatValue(project.commenters ?? project.commentersCount ?? project.commenter_count)}</td>
+                              <td>{formatValue(project.discussedItems ?? project.discussed_items ?? project.discussedItemsCount)}</td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan={4}>No data</td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </section>
           </>
         ) : null}
       </div>

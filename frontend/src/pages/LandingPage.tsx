@@ -178,7 +178,7 @@ const LandingPage = () => {
           <span className="eyebrow">How it works</span>
           <h2>Connect, measure, and optimize AI-driven engineering work</h2>
           <p>
-            IntelBoard helps teams capture AI adoption signals, benchmark impact, and take the right actions to improve
+            Intel-Dash helps teams capture AI adoption signals, benchmark impact, and take the right actions to improve
             delivery quality over time.
           </p>
         </div>

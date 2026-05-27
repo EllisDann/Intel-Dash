@@ -9,7 +9,10 @@ import IntegrationsPage from './pages/IntegrationsPage';
 import OAuthCallbackPage from './pages/OAuthCallbackPage';
 import OnboardingPage from './pages/OnboardingPage';
 import LandingPage from './pages/LandingPage';
-import SettingsPage from './pages/SettingsPage';
+import AccountSettingsPage from './pages/AccountSettingsPage';
+import ConnectionsPage from './pages/ConnectionsPage';
+import BillingPage from './pages/BillingPage';
+import TeamManagementPage from './pages/TeamManagementPage';
 import { SidebarProvider } from './contexts/SidebarContext';
 
 const MainLayout = () => (
@@ -62,10 +65,34 @@ function App() {
               }
             />
             <Route
+              path="/connections"
+              element={
+                <ProtectedRoute>
+                  <ConnectionsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/settings"
               element={
                 <ProtectedRoute>
-                  <SettingsPage />
+                  <AccountSettingsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/team-management"
+              element={
+                <ProtectedRoute>
+                  <TeamManagementPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/billing"
+              element={
+                <ProtectedRoute>
+                  <BillingPage />
                 </ProtectedRoute>
               }
             />

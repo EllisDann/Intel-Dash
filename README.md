@@ -1,6 +1,6 @@
-# IntelBoard
+# Intel-Dash
 
-IntelBoard is a productivity analytics SaaS designed to help teams measure performance before and after AI adoption. It connects to tools like GitHub and Jira, calculates key engineering metrics, and provides a dashboard for trend analysis.
+Intel-Dash is a productivity analytics SaaS designed to help teams measure performance before and after AI adoption. It connects to tools like GitHub and Jira, calculates key engineering metrics, and provides a dashboard for trend analysis.
 
 ## Project Structure
 - `backend/` - Node.js + TypeScript backend API
@@ -10,7 +10,7 @@ IntelBoard is a productivity analytics SaaS designed to help teams measure perfo
 - `docs/` - Planning and documentation
 
 ## Getting Started
-1. Read `docs/INDEX.md` for the full IntelBoard overview.
+1. Read `docs/INDEX.md` for the full Intel-Dash overview.
 2. Follow `docs/01-project-setup.md` to set up the initial project scaffold.
 3. Install dependencies and start backend/frontend servers.
 
