@@ -1,19 +1,11 @@
+import './loadEnv';
 import express from 'express';
 import cors from 'cors';
-import fs from 'fs';
-import path from 'path';
-import dotenv from 'dotenv';
 import authRouter from './routes/auth';
 import userRouter from './routes/user';
 import integrationsRouter from './routes/integrations';
 import dashboardRouter from './routes/dashboard';
 import metricsRouter from './routes/metrics';
-
-const envPath = path.resolve(process.cwd(), '.env');
-const parentEnvPath = path.resolve(process.cwd(), '..', '.env');
-const configPath = fs.existsSync(envPath) ? envPath : parentEnvPath;
-
-dotenv.config({ path: configPath });
 
 const app = express();
 app.use(cors());

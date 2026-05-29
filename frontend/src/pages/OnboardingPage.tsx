@@ -1,24 +1,54 @@
 import { useEffect, useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import api from '../api';
 import '../styles/onboarding.css';
 
 type OnboardingStep = 'account-settings' | 'team-settings' | 'connections';
 
+type IntegrationStatus = {
+  type: 'github' | 'jira';
+  is_connected: boolean;
+};
+
+const MAX_USERNAME_LENGTH = 20;
+
 const OnboardingPage = () => {
   const { tenant, updateProfile, user } = useAuth();
+  const [searchParams] = useSearchParams();
   const [currentStep, setCurrentStep] = useState<OnboardingStep>('account-settings');
   const [username, setUsername] = useState('');
   const [teamName, setTeamName] = useState(tenant?.name || '');
   const [profilePicture, setProfilePicture] = useState<File | null>(null);
+  const welcomeName = username || user?.name || '';
   const [profilePicturePreview, setProfilePicturePreview] = useState<string | null>(null);
+  const [integrations, setIntegrations] = useState<IntegrationStatus[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [connecting, setConnecting] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const step = searchParams.get('step');
+    if (step === 'connections') {
+      setCurrentStep('connections');
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    const fetchIntegrations = async () => {
+      try {
+        const response = await api.get('/api/integrations');
+        setIntegrations(response.data.integrations || []);
+      } catch (err: any) {
+        console.warn('Unable to fetch integration status', err);
+      }
+    };
+
+    fetchIntegrations();
+  }, []);
 
   useEffect(() => {
     if (tenant?.name) {
@@ -41,12 +71,17 @@ const OnboardingPage = () => {
   const handleSaveAccount = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError('');
-    if (!username.trim()) {
+    const trimmedUsername = username.trim();
+    if (!trimmedUsername) {
       setError('Username is required');
       return;
     }
-    if (username.includes(' ')) {
+    if (trimmedUsername.includes(' ')) {
       setError('Username cannot contain spaces');
+      return;
+    }
+    if (trimmedUsername.length > MAX_USERNAME_LENGTH) {
+      setError(`Username must be ${MAX_USERNAME_LENGTH} characters or fewer.`);
       return;
     }
 
@@ -95,12 +130,17 @@ const OnboardingPage = () => {
     }
   };
 
+  const isIntegrationConnected = (type: 'github' | 'jira') => {
+    return integrations.some((integration) => integration.type === type && integration.is_connected);
+  };
+
   const handleConnect = async (type: string) => {
     try {
       setError('');
       setMessage('Redirecting to authorization...');
       setConnecting(true);
-      const response = await api.post(`/api/integrations/${type}/authorize`);
+      const returnUrl = encodeURIComponent('/onboarding?step=connections');
+      const response = await api.post(`/api/integrations/${type}/authorize?returnUrl=${returnUrl}`);
       window.location.href = response.data.authorizeUrl;
     } catch (err: any) {
       setConnecting(false);
@@ -144,17 +184,25 @@ const OnboardingPage = () => {
         <p>Set up your profile with your name and optional profile picture.</p>
       </div>
 
-      <form onSubmit={handleSaveAccount} className="onboarding-form">
+      <form onSubmit={handleSaveAccount} className="onboarding-form" autoComplete="off">
+        <input type="text" name="fake_username" autoComplete="username" style={{ display: 'none' }} />
+        <input type="password" name="fake_password" autoComplete="new-password" style={{ display: 'none' }} />
         <div className="form-group">
           <label htmlFor="username">Username</label>
           <input
             id="username"
+            name="onboarding_username"
+            autoComplete="off"
             type="text"
             value={username}
+            maxLength={MAX_USERNAME_LENGTH}
             onChange={(event) => setUsername(event.target.value)}
             placeholder="Enter your username"
             required
           />
+          <small style={{ color: '#64748b', marginTop: '0.5rem', display: 'block' }}>
+            {`Up to ${MAX_USERNAME_LENGTH} characters, no spaces.`}
+          </small>
         </div>
 
         <div className="form-group">
@@ -262,10 +310,14 @@ const OnboardingPage = () => {
           </div>
           <button
             onClick={() => handleConnect('github')}
-            disabled={connecting}
+            disabled={connecting || isIntegrationConnected('github')}
             className="button button-secondary"
           >
-            {connecting ? 'Connecting...' : 'Connect GitHub'}
+            {isIntegrationConnected('github')
+              ? 'Connected'
+              : connecting
+              ? 'Connecting...'
+              : 'Connect GitHub'}
           </button>
         </div>
 
@@ -276,10 +328,14 @@ const OnboardingPage = () => {
           </div>
           <button
             onClick={() => handleConnect('jira')}
-            disabled={connecting}
+            disabled={connecting || isIntegrationConnected('jira')}
             className="button button-secondary"
           >
-            {connecting ? 'Connecting...' : 'Connect Jira'}
+            {isIntegrationConnected('jira')
+              ? 'Connected'
+              : connecting
+              ? 'Connecting...'
+              : 'Connect Jira'}
           </button>
         </div>
       </div>
@@ -310,7 +366,7 @@ const OnboardingPage = () => {
     <div className="page-shell onboarding-page">
       <div className="onboarding-container">
         <div className="onboarding-header">
-          <h1>Welcome to Intel-Dash, {user?.email?.split('@')[0]}</h1>
+          <h1>Welcome to Intel-Dash{welcomeName ? `, ${welcomeName}` : ''}</h1>
           <p>Let's set up your workspace in just a few steps</p>
         </div>
 

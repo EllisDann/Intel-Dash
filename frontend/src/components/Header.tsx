@@ -10,11 +10,10 @@ const Header = () => {
   const isBillingPage = location.pathname === '/billing';
   const isConnectionsPage = location.pathname === '/connections';
   const isTeamManagementPage = location.pathname === '/team-management';
-  const isDashboard = isAuthenticated && (location.pathname === '/dashboard' || location.pathname === '/integrations' || location.pathname === '/onboarding' || isConnectionsPage);
+  const isDashboard = isAuthenticated && (location.pathname === '/dashboard' || location.pathname === '/onboarding' || isConnectionsPage);
   const showAuthButtons = !isAuthenticated || location.pathname === '/';
   const dashboardTitleMap: Record<string, string> = {
     '/dashboard': 'Activity Board',
-    '/integrations': 'Integrations',
     '/onboarding': 'Onboarding',
     '/connections': 'Connections',
   };

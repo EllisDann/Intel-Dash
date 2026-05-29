@@ -14,30 +14,35 @@ if (!clientId || !clientSecret) {
 
 export class JiraIntegration extends BaseIntegration {
   getAuthorizationUrl(state: string) {
+    if (!clientId || !clientSecret) {
+      throw new Error('Jira OAuth is not configured. Set JIRA_CLIENT_ID and JIRA_CLIENT_SECRET.');
+    }
     return `https://auth.atlassian.com/authorize?audience=api://default&client_id=${encodeURIComponent(
-      clientId || ''
+      clientId
     )}&scope=read%3Ajira-user%20read%3Ajira-work%20offline_access&redirect_uri=${encodeURIComponent(
       redirectUri
     )}&state=${encodeURIComponent(state)}&response_type=code&prompt=consent`;
   }
 
-  async createStateToken() {
+  async createStateToken(returnUrl?: string) {
     const state = crypto.randomBytes(24).toString('hex');
     await query(
-      'INSERT INTO oauth_states (tenant_id, integration_type, state, expires_at) VALUES ($1, $2, $3, NOW() + INTERVAL \'15 minutes\')',
-      [this.tenantId, 'jira', state]
+      'INSERT INTO oauth_states (tenant_id, integration_type, state, expires_at, return_url) VALUES ($1, $2, $3, NOW() + INTERVAL \'15 minutes\', $4)',
+      [this.tenantId, 'jira', state, returnUrl || null]
     );
     return state;
   }
 
   async handleCallback(code: string, state: string) {
     const stateResult = await query(
-      'SELECT id FROM oauth_states WHERE tenant_id = $1 AND integration_type = $2 AND state = $3 AND expires_at > NOW()',
+      'SELECT id, return_url FROM oauth_states WHERE tenant_id = $1 AND integration_type = $2 AND state = $3 AND expires_at > NOW()',
       [this.tenantId, 'jira', state]
     );
     if (stateResult.rowCount === 0) {
       throw new Error('Invalid or expired OAuth state token');
     }
+
+    const returnUrl = stateResult.rows[0].return_url;
 
     const tokenResponse = await axios.post(
       'https://auth.atlassian.com/oauth/token',
@@ -66,11 +71,13 @@ export class JiraIntegration extends BaseIntegration {
     }
 
     await query(
-      'INSERT INTO integration_credentials (integration_id, credential_type, encrypted_credential, expires_at, created_at) VALUES ($1, $2, $3, NULL, NOW())',
+      'INSERT INTO integration_credentials (integration_id, credential_type, encrypted_credential, expires_at, created_at) VALUES ($1, $2, $3, $4, NOW())',
       [integrationId, 'oauth_token', encrypt(accessToken), null]
     );
 
     await query('UPDATE integrations SET is_connected = true, connected_at = NOW(), disconnected_at = NULL, updated_at = NOW() WHERE id = $1', [integrationId]);
+
+    return { returnUrl };
   }
 
   async disconnect() {

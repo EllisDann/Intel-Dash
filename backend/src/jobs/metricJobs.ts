@@ -6,6 +6,10 @@ export const enqueueMetricCalculation = async (tenantId: string, date: string) =
   return computeDailyMetrics(tenantId, date);
 };
 
+const isMissingTableError = (error: any, tableName: string) => {
+  return error?.code === '42P01' && error?.message?.includes(tableName);
+};
+
 export const computeDailyMetrics = async (tenantId: string, date: string) => {
   // date is YYYY-MM-DD
   const client = await getClient();
@@ -129,6 +133,12 @@ export const computeDailyMetrics = async (tenantId: string, date: string) => {
     return { tenantId, date, throughput, avgCycle, avgLead, topDevelopers: devRes.rows };
   } catch (err) {
     await client.query('ROLLBACK');
+
+    if (isMissingTableError(err, 'work_items')) {
+      console.warn(`Skipping daily metrics for tenant ${tenantId}: work_items table does not exist yet.`);
+      return { tenantId, date, throughput: 0, avgCycle: null, avgLead: null, topDevelopers: [] };
+    }
+
     console.error('computeDailyMetrics error', err);
     throw err;
   } finally {

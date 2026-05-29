@@ -644,12 +644,38 @@ router.get('/api/dashboard/developers/:id/throughput', authenticate, async (req,
 router.get('/api/dashboard/repositories', authenticate, async (req, res) => {
   try {
     const user = (req as any).user;
-    const { startDate, endDate } = req.query as any;
+    const now = new Date();
+    const defaultEndDate = now.toISOString().slice(0, 10);
+    const defaultStartDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const startDate = (req.query.startDate as string) || defaultStartDate;
+    const endDate = (req.query.endDate as string) || defaultEndDate;
+
     const rows = await query(
-      `SELECT source_type, source_id AS id, COUNT(*)::int AS throughput
-       FROM work_items
-       WHERE tenant_id = $1 AND completed_at::date BETWEEN $2::date AND $3::date
-       GROUP BY source_type, source_id
+      `SELECT
+         w.source_type,
+         w.source_id AS id,
+         COUNT(*)::int AS throughput,
+         COALESCE(pr_counts.opened_prs, 0)::int AS opened_prs,
+         COALESCE(pr_counts.total_loc, 0)::int AS loc
+       FROM work_items w
+       LEFT JOIN (
+         SELECT
+           pr.source_id,
+           COUNT(*)::int AS opened_prs,
+           COALESCE(SUM(
+             CASE
+               WHEN pr.metadata ? 'additions' AND pr.metadata ? 'deletions'
+                 THEN ((pr.metadata->>'additions')::int + (pr.metadata->>'deletions')::int)
+               ELSE COALESCE(cm.original_lines_added + cm.original_lines_deleted, 0)
+             END
+           ), 0)::int AS total_loc
+         FROM pull_requests pr
+         LEFT JOIN code_churn_metrics cm ON cm.pull_request_id = pr.id
+         WHERE pr.tenant_id = $1 AND pr.created_at::date BETWEEN $2::date AND $3::date
+         GROUP BY pr.source_id
+       ) pr_counts ON pr_counts.source_id = w.source_id
+       WHERE w.tenant_id = $1 AND w.completed_at::date BETWEEN $2::date AND $3::date
+       GROUP BY w.source_type, w.source_id, pr_counts.opened_prs, pr_counts.total_loc
        ORDER BY throughput DESC
        LIMIT 50`,
       [user.tenant_id, startDate, endDate]

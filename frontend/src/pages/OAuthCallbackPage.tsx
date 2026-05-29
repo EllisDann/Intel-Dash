@@ -19,9 +19,10 @@ const OAuthCallbackPage = () => {
 
     const completeConnection = async () => {
       try {
-        await api.get(`/api/integrations/${type}/callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}`);
+        const response = await api.get(`/api/integrations/${type}/callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}`);
         setMessage('Integration connected successfully. Redirecting...');
-        setTimeout(() => navigate('/integrations'), 1500);
+        const redirectUrl = decodeURIComponent(response.data.returnUrl || '/connections');
+        setTimeout(() => window.location.replace(redirectUrl), 1500);
       } catch (error: any) {
         setMessage(error.response?.data?.error || 'Unable to complete the OAuth callback.');
       }

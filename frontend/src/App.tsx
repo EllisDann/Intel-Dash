@@ -5,7 +5,6 @@ import Header from './components/Header';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
-import IntegrationsPage from './pages/IntegrationsPage';
 import OAuthCallbackPage from './pages/OAuthCallbackPage';
 import OnboardingPage from './pages/OnboardingPage';
 import LandingPage from './pages/LandingPage';
@@ -53,14 +52,6 @@ function App() {
               element={
                 <ProtectedRoute>
                   <DashboardPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/integrations"
-              element={
-                <ProtectedRoute>
-                  <IntegrationsPage />
                 </ProtectedRoute>
               }
             />
