@@ -64,6 +64,8 @@ const DashboardPage: React.FC = () => {
 
   const [metrics, setMetrics] = useState<any | null>(null);
   const [repositories, setRepositories] = useState<any[]>([]);
+  const [syncingDashboardData, setSyncingDashboardData] = useState(false);
+  const [didAutoSync, setDidAutoSync] = useState(false);
 
   const [startDate, setStartDate] = useState<string>(() => {
     const d = new Date();
@@ -112,6 +114,48 @@ const DashboardPage: React.FC = () => {
 
     fetchRepositories();
   }, [startDate, endDate]);
+
+  useEffect(() => {
+    const autoSync = async () => {
+      if (!summary || didAutoSync) {
+        return;
+      }
+
+      const githubConnected = summary.integrations?.some(
+        (integration) => integration.type === 'github' && integration.is_connected
+      );
+
+      if (!githubConnected) {
+        setDidAutoSync(true);
+        return;
+      }
+
+      setSyncingDashboardData(true);
+      try {
+        await api.post('/api/dashboard/sync');
+      } catch (err: any) {
+        console.warn('Unable to sync GitHub dashboard data', err?.response?.data || err.message);
+      } finally {
+        setSyncingDashboardData(false);
+        setDidAutoSync(true);
+        try {
+          const metricsResp = await api.get('/api/dashboard/metrics', { params: { startDate, endDate } });
+          setMetrics(metricsResp.data);
+        } catch (err: any) {
+          console.warn('Unable to reload metrics after sync', err?.response?.data || err.message);
+        }
+
+        try {
+          const reposResp = await api.get('/api/dashboard/repositories', { params: { startDate, endDate } });
+          setRepositories(reposResp.data || []);
+        } catch (err: any) {
+          console.warn('Unable to reload repositories after sync', err?.response?.data || err.message);
+        }
+      }
+    };
+
+    autoSync();
+  }, [summary, didAutoSync, startDate, endDate]);
 
   const NO_DATA_TEXT = 'No data available';
 
@@ -211,7 +255,7 @@ const DashboardPage: React.FC = () => {
                             <tr key={repo.id}>
                               <td>{repo.id}</td>
                               <td>{repo.throughput ?? NO_DATA_TEXT}</td>
-                              <td>{repo.openedPRs ?? repo.open_prs ?? NO_DATA_TEXT}</td>
+                              <td>{repo.openedPRs ?? repo.opened_prs ?? NO_DATA_TEXT}</td>
                               <td>{repo.loc ?? repo.total_loc ?? NO_DATA_TEXT}</td>
                             </tr>
                           ))

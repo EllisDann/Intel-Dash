@@ -47,6 +47,7 @@ const ConnectionsPage: React.FC = () => {
   const [reposLoading, setReposLoading] = useState(false);
   const [reposError, setReposError] = useState('');
   const [importingRepo, setImportingRepo] = useState<string | null>(null);
+  const [syncingMetrics, setSyncingMetrics] = useState(false);
   const [removingRepo, setRemovingRepo] = useState<string | null>(null);
 
   const fetchIntegrations = async () => {
@@ -104,6 +105,8 @@ const ConnectionsPage: React.FC = () => {
         title: repo.name,
         archived: repo.archived,
       });
+
+      await api.post(`/api/integrations/${githubIntegration.id}/sync`);
       await fetchIntegrations();
       await fetchAvailableRepos(githubIntegration.id);
     } catch (err: any) {
@@ -169,6 +172,24 @@ const ConnectionsPage: React.FC = () => {
       fetchIntegrations();
     } catch (err: any) {
       setError(err.response?.data?.error || 'Unable to disconnect integration.');
+    }
+  };
+
+  const handleSyncMetrics = async () => {
+    if (!githubIntegration) {
+      return;
+    }
+
+    setError('');
+    setSyncingMetrics(true);
+    try {
+      await api.post(`/api/integrations/${githubIntegration.id}/sync`);
+      await fetchIntegrations();
+      await fetchAvailableRepos(githubIntegration.id);
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Unable to sync GitHub metrics.');
+    } finally {
+      setSyncingMetrics(false);
     }
   };
 
@@ -337,9 +358,19 @@ const ConnectionsPage: React.FC = () => {
 
                 {githubIntegration && (
                   <section className="settings-section" style={{ marginTop: '2rem' }}>
-                    <div className="section-header">
-                      <h3>Available GitHub Repositories</h3>
-                      <p>Select repositories to import into Intel-Dash.</p>
+                    <div className="section-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
+                      <div>
+                        <h3>Available GitHub Repositories</h3>
+                        <p>Select repositories to import into Intel-Dash.</p>
+                      </div>
+                      <button
+                        type="button"
+                        className="button button-secondary"
+                        disabled={syncingMetrics}
+                        onClick={handleSyncMetrics}
+                      >
+                        {syncingMetrics ? 'Syncing metrics…' : 'Sync GitHub metrics'}
+                      </button>
                     </div>
                     {reposLoading ? (
                       <p>Loading repositories...</p>

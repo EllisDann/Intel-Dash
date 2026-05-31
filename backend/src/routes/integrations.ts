@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { authenticate, requireAdmin, AuthenticatedRequest } from '../middleware/auth';
 import { query } from '../db';
 import { createIntegrationClient } from '../integrations';
+import { GitHubIntegration } from '../integrations/github';
 
 const router = Router();
 
@@ -150,13 +151,20 @@ router.post('/api/integrations/:id/sync', authenticate, requireAdmin, async (req
     }
 
     const integrationData = integrationResult.rows[0];
-    const integration = createIntegrationClient(integrationData.type, tenantId, id);
+    const integration = createIntegrationClient(integrationData.type, tenantId, id) as GitHubIntegration;
 
-    // For GitHub, fetch and store repositories
     let result: any;
     if (integrationData.type === 'github') {
-      // Refresh GitHub repository metadata without importing repos automatically.
-      result = await integration.fetchRepositories();
+      const repoRows = await query(
+        'SELECT source_id FROM work_items WHERE tenant_id = $1 AND source_type = $2',
+        [tenantId, 'github']
+      );
+      const repoNames = repoRows.rows.map((row) => row.source_id).filter(Boolean);
+      if (repoNames.length === 0) {
+        result = { syncedRepos: 0, message: 'No imported GitHub repositories to sync.' };
+      } else {
+        result = await integration.syncRepositoryMetrics(repoNames);
+      }
     } else {
       // For other types, use generic fetch
       result = await integration.fetchData();
@@ -189,7 +197,7 @@ router.get('/api/integrations/:id/repos', authenticate, async (req, res) => {
       return res.status(400).json({ error: 'Repository listing is only supported for GitHub integrations' });
     }
 
-    const integration = createIntegrationClient(integrationData.type, tenantId, id);
+    const integration = createIntegrationClient(integrationData.type, tenantId, id) as GitHubIntegration;
     const repos = await integration.fetchRepositories();
     return res.json({ repos });
   } catch (error: any) {
@@ -223,7 +231,7 @@ router.post('/api/integrations/:id/repos/import', authenticate, requireAdmin, as
       return res.status(400).json({ error: 'Repository import is only supported for GitHub integrations' });
     }
 
-    const integration = createIntegrationClient(integrationData.type, tenantId, id);
+    const integration = createIntegrationClient(integrationData.type, tenantId, id) as GitHubIntegration;
     const result = await integration.importRepository(source_id, title, Boolean(archived));
     return res.json({ success: true, ...result });
   } catch (error: any) {

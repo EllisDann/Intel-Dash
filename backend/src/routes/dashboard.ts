@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import { authenticate } from '../middleware/auth';
 import { query } from '../db';
+import { createIntegrationClient } from '../integrations';
+import { GitHubIntegration } from '../integrations/github';
 
 const router = Router();
 
@@ -56,6 +58,39 @@ router.get('/api/dashboard/summary', authenticate, async (req, res) => {
   }
 });
 
+router.post('/api/dashboard/sync', authenticate, async (req, res) => {
+  try {
+    const user = (req as any).user;
+    const tenantId = user.tenant_id;
+
+    const githubIntegrationResult = await query(
+      'SELECT id FROM integrations WHERE tenant_id = $1 AND type = $2 AND is_connected = true LIMIT 1',
+      [tenantId, 'github']
+    );
+
+    if (githubIntegrationResult.rowCount === 0) {
+      return res.json({ success: true, syncedRepos: 0, message: 'No connected GitHub integration found.' });
+    }
+
+    const repoRows = await query(
+      'SELECT source_id FROM work_items WHERE tenant_id = $1 AND source_type = $2',
+      [tenantId, 'github']
+    );
+    const repoNames = repoRows.rows.map((row) => row.source_id).filter(Boolean);
+
+    if (repoNames.length === 0) {
+      return res.json({ success: true, syncedRepos: 0, message: 'No imported GitHub repositories to sync.' });
+    }
+
+    const integration = createIntegrationClient('github', tenantId, githubIntegrationResult.rows[0].id) as GitHubIntegration;
+    const result = await integration.syncRepositoryMetrics(repoNames);
+    return res.json({ success: true, ...result });
+  } catch (error: any) {
+    console.error('Dashboard sync error:', error);
+    return res.status(500).json({ error: error.message || 'Unable to sync GitHub data' });
+  }
+});
+
 // Lightweight metrics endpoint - returns an activity board summary payload.
 router.get('/api/dashboard/metrics', authenticate, async (req, res) => {
   try {
@@ -66,23 +101,80 @@ router.get('/api/dashboard/metrics', authenticate, async (req, res) => {
     const startDate = (req.query.startDate as string) || defaultStartDate;
     const endDate = (req.query.endDate as string) || defaultEndDate;
 
-    const [prStatsRes, throughputRes, issueStatsRes, projectIssuesRes, reviewRes, reviewProjectsRes, commentRes, commentProjectsRes] =
+    const hasDeveloperWorkItemsRes = await query(
+      `SELECT EXISTS (
+         SELECT 1
+         FROM information_schema.tables
+         WHERE table_schema = 'public'
+           AND table_name = 'developer_work_items'
+       ) AS exists`
+    );
+    const hasDeveloperWorkItems = hasDeveloperWorkItemsRes.rows[0]?.exists ?? false;
+    const issueStatsQuery = hasDeveloperWorkItems
+      ? `SELECT
+             COUNT(*) FILTER (WHERE w.created_at::date BETWEEN $2::date AND $3::date)::int AS opened_issues,
+             COUNT(*) FILTER (WHERE w.completed_at::date BETWEEN $2::date AND $3::date)::int AS closed_issues,
+             COUNT(DISTINCT CASE WHEN w.created_at::date BETWEEN $2::date AND $3::date THEN dwi.developer_id::text END)::int AS issue_authors
+           FROM work_items w
+           LEFT JOIN developer_work_items dwi ON dwi.work_item_id = w.id AND dwi.tenant_id = w.tenant_id
+           WHERE w.tenant_id = $1`
+      : `SELECT
+             COUNT(*) FILTER (WHERE w.created_at::date BETWEEN $2::date AND $3::date)::int AS opened_issues,
+             COUNT(*) FILTER (WHERE w.completed_at::date BETWEEN $2::date AND $3::date)::int AS closed_issues,
+             0::int AS issue_authors
+           FROM work_items w
+           WHERE w.tenant_id = $1`;
+
+    const githubIntegrationResult = await query(
+      'SELECT id FROM integrations WHERE tenant_id = $1 AND type = $2 AND is_connected = true LIMIT 1',
+      [user.tenant_id, 'github']
+    );
+    const repoRows = await query(
+      'SELECT source_id FROM work_items WHERE tenant_id = $1 AND source_type = $2',
+      [user.tenant_id, 'github']
+    );
+    const repoNames = repoRows.rows.map((row) => row.source_id).filter(Boolean);
+    const commitStatsPromise = typeof githubIntegrationResult.rowCount === 'number' && githubIntegrationResult.rowCount > 0 && repoNames.length > 0
+      ? (createIntegrationClient('github', user.tenant_id, githubIntegrationResult.rows[0].id) as GitHubIntegration)
+          .fetchCommitCountForRepos(repoNames, startDate, endDate)
+          .then((count) => ({ commits_made: count }))
+          .catch((err) => {
+            console.error('GitHub commit count fetch failed', err);
+            return query(
+              `SELECT
+                 COALESCE(SUM(COALESCE((metadata->>'commits')::int, 0)), 0)::int AS commits_made
+               FROM pull_requests
+               WHERE tenant_id = $1
+                 AND (created_at::date BETWEEN $2::date AND $3::date OR merged_at::date BETWEEN $2::date AND $3::date)`,
+              [user.tenant_id, startDate, endDate]
+            );
+          })
+      : query(
+          `SELECT
+             COALESCE(SUM(COALESCE((metadata->>'commits')::int, 0)), 0)::int AS commits_made
+           FROM pull_requests
+           WHERE tenant_id = $1
+             AND (created_at::date BETWEEN $2::date AND $3::date OR merged_at::date BETWEEN $2::date AND $3::date)`,
+          [user.tenant_id, startDate, endDate]
+        );
+
+    const [prStatsRes, throughputRes, commitsRes, issueStatsRes, projectIssuesRes, reviewRes, reviewProjectsRes, commentRes, commentProjectsRes] =
       await Promise.all([
         query(
           `SELECT
-             COUNT(*) FILTER (WHERE created_at::date BETWEEN $2::date AND $3::date)::int AS opened_prs,
-             COUNT(*) FILTER (WHERE merged_at::date BETWEEN $2::date AND $3::date)::int AS completed_prs,
+             COUNT(*) FILTER (WHERE pr.created_at::date BETWEEN $2::date AND $3::date)::int AS opened_prs,
+             COUNT(*) FILTER (WHERE pr.merged_at::date BETWEEN $2::date AND $3::date)::int AS completed_prs,
              AVG(CASE
-                   WHEN metadata ? 'additions' AND metadata ? 'deletions'
-                   THEN ((metadata->>'additions')::int + (metadata->>'deletions')::int)
+                   WHEN pr.metadata ? 'additions' AND pr.metadata ? 'deletions'
+                   THEN ((pr.metadata->>'additions')::int + (pr.metadata->>'deletions')::int)
                    ELSE NULL
-                 END) FILTER (WHERE created_at::date BETWEEN $2::date AND $3::date)::numeric AS avg_pr_size,
+                 END) FILTER (WHERE pr.created_at::date BETWEEN $2::date AND $3::date)::numeric AS avg_pr_size,
              SUM(CASE
-                   WHEN metadata ? 'additions' AND metadata ? 'deletions'
-                   THEN ((metadata->>'additions')::int + (metadata->>'deletions')::int)
+                   WHEN pr.metadata ? 'additions' AND pr.metadata ? 'deletions'
+                   THEN ((pr.metadata->>'additions')::int + (pr.metadata->>'deletions')::int)
                    ELSE COALESCE(cm.original_lines_added + cm.original_lines_deleted, 0)
-                 END) FILTER (WHERE created_at::date BETWEEN $2::date AND $3::date)::int AS total_loc,
-             COUNT(DISTINCT CASE WHEN metadata ? 'author' THEN metadata->>'author' END) FILTER (WHERE created_at::date BETWEEN $2::date AND $3::date)::int AS pr_authors
+                 END) FILTER (WHERE pr.created_at::date BETWEEN $2::date AND $3::date)::int AS total_loc,
+             COUNT(DISTINCT CASE WHEN pr.metadata ? 'author' THEN pr.metadata->>'author' END) FILTER (WHERE pr.created_at::date BETWEEN $2::date AND $3::date)::int AS pr_authors
            FROM pull_requests pr
            LEFT JOIN code_churn_metrics cm ON cm.pull_request_id = pr.id
            WHERE pr.tenant_id = $1
@@ -98,16 +190,8 @@ router.get('/api/dashboard/metrics', authenticate, async (req, res) => {
            WHERE tenant_id = $1 AND period_type = 'daily' AND snapshot_date BETWEEN $2::date AND $3::date`,
           [user.tenant_id, startDate, endDate]
         ),
-        query(
-          `SELECT
-             COUNT(*) FILTER (WHERE created_at::date BETWEEN $2::date AND $3::date)::int AS opened_issues,
-             COUNT(*) FILTER (WHERE completed_at::date BETWEEN $2::date AND $3::date)::int AS closed_issues,
-             COUNT(DISTINCT CASE WHEN created_at::date BETWEEN $2::date AND $3::date THEN dwi.developer_id::text END)::int AS issue_authors
-           FROM work_items w
-           LEFT JOIN developer_work_items dwi ON dwi.work_item_id = w.id AND dwi.tenant_id = w.tenant_id
-           WHERE w.tenant_id = $1`,
-          [user.tenant_id, startDate, endDate]
-        ),
+        commitStatsPromise,
+        query(issueStatsQuery, [user.tenant_id, startDate, endDate]),
         query(
           `SELECT
              COALESCE(w.source_id, w.source_type, 'unknown') AS project_name,
@@ -177,6 +261,7 @@ router.get('/api/dashboard/metrics', authenticate, async (req, res) => {
 
     const prStats = prStatsRes.rows[0] || {};
     const throughputStats = throughputRes.rows[0] || {};
+    const commitStats = 'rows' in commitsRes ? commitsRes.rows[0] : commitsRes || {};
     const issueStats = issueStatsRes.rows[0] || {};
     const reviewStats = reviewRes.rows[0] || {};
     const commentStats = commentRes.rows[0] || {};
@@ -185,7 +270,7 @@ router.get('/api/dashboard/metrics', authenticate, async (req, res) => {
       openedPRs: prStats.opened_prs ?? 0,
       completedPRs: prStats.completed_prs ?? 0,
       averagePRSize: prStats.avg_pr_size !== null ? Number(prStats.avg_pr_size) : null,
-      commitsMade: throughputStats.commits_made ?? 0,
+      commitsMade: commitStats.commits_made ?? 0,
       prAuthors: prStats.pr_authors ?? 0,
       totalLinesOfCode: prStats.total_loc ?? 0,
       openedIssues: issueStats.opened_issues ?? 0,

@@ -2,6 +2,8 @@ import { Router } from 'express';
 import { authenticate } from '../middleware/auth';
 import { query } from '../db';
 import { enqueueMetricCalculation } from '../jobs/metricJobs';
+import { createIntegrationClient } from '../integrations';
+import { GitHubIntegration } from '../integrations/github';
 
 const router = Router();
 
@@ -597,6 +599,19 @@ router.get('/api/dashboard/developers', authenticate, async (req, res) => {
   try {
     const user = (req as any).user;
     const { startDate, endDate } = req.query as any;
+    const tableCheck = await query(
+      `SELECT EXISTS (
+         SELECT 1
+         FROM information_schema.tables
+         WHERE table_schema = 'public'
+           AND table_name = 'developer_work_items'
+       ) AS exists`
+    );
+
+    if (!tableCheck.rows[0]?.exists) {
+      return res.json([]);
+    }
+
     const rows = await query(
       `SELECT dwi.developer_id::text AS id, COALESCE(dev.display_name, dwi.developer_id::text) AS name, COUNT(*)::int AS throughput
        FROM developer_work_items dwi
@@ -623,6 +638,19 @@ router.get('/api/dashboard/developers/:id/throughput', authenticate, async (req,
     const user = (req as any).user;
     const developerId = req.params.id;
     const { startDate, endDate } = req.query as any;
+    const tableCheck = await query(
+      `SELECT EXISTS (
+         SELECT 1
+         FROM information_schema.tables
+         WHERE table_schema = 'public'
+           AND table_name = 'developer_work_items'
+       ) AS exists`
+    );
+
+    if (!tableCheck.rows[0]?.exists) {
+      return res.json([]);
+    }
+
     const rows = await query(
       `SELECT w.completed_at::date AS date, COUNT(*)::int AS value
        FROM developer_work_items dwi
@@ -650,38 +678,70 @@ router.get('/api/dashboard/repositories', authenticate, async (req, res) => {
     const startDate = (req.query.startDate as string) || defaultStartDate;
     const endDate = (req.query.endDate as string) || defaultEndDate;
 
-    const rows = await query(
-      `SELECT
-         w.source_type,
-         w.source_id AS id,
-         COUNT(*)::int AS throughput,
-         COALESCE(pr_counts.opened_prs, 0)::int AS opened_prs,
-         COALESCE(pr_counts.total_loc, 0)::int AS loc
+    const importedReposRes = await query(
+      `SELECT w.source_id AS id
        FROM work_items w
-       LEFT JOIN (
+       WHERE w.tenant_id = $1 AND w.source_type = 'github'`,
+      [user.tenant_id]
+    );
+    const repoNames = importedReposRes.rows.map((row: any) => row.id).filter(Boolean);
+
+    const githubIntegrationResult = await query(
+      'SELECT id FROM integrations WHERE tenant_id = $1 AND type = $2 AND is_connected = true LIMIT 1',
+      [user.tenant_id, 'github']
+    );
+    let commitCountsByRepo: Record<string, number> = {};
+
+    if (typeof githubIntegrationResult.rowCount === 'number' && githubIntegrationResult.rowCount > 0 && repoNames.length > 0) {
+      try {
+        const integration = createIntegrationClient('github', user.tenant_id, githubIntegrationResult.rows[0].id) as GitHubIntegration;
+        commitCountsByRepo = await integration.fetchCommitCountsForRepos(repoNames, startDate, endDate);
+      } catch (err) {
+        console.error('Unable to fetch commit counts for repos', err);
+      }
+    }
+
+    const rows = await query(
+      `WITH repo_activity AS (
          SELECT
-           pr.source_id,
+           pr.source_id AS id,
            COUNT(*)::int AS opened_prs,
            COALESCE(SUM(
              CASE
                WHEN pr.metadata ? 'additions' AND pr.metadata ? 'deletions'
                  THEN ((pr.metadata->>'additions')::int + (pr.metadata->>'deletions')::int)
-               ELSE COALESCE(cm.original_lines_added + cm.original_lines_deleted, 0)
+                 ELSE COALESCE(cm.original_lines_added + cm.original_lines_deleted, 0)
              END
-           ), 0)::int AS total_loc
+           ), 0)::int AS loc
          FROM pull_requests pr
          LEFT JOIN code_churn_metrics cm ON cm.pull_request_id = pr.id
          WHERE pr.tenant_id = $1 AND pr.created_at::date BETWEEN $2::date AND $3::date
          GROUP BY pr.source_id
-       ) pr_counts ON pr_counts.source_id = w.source_id
-       WHERE w.tenant_id = $1 AND w.completed_at::date BETWEEN $2::date AND $3::date
-       GROUP BY w.source_type, w.source_id, pr_counts.opened_prs, pr_counts.total_loc
-       ORDER BY throughput DESC
-       LIMIT 50`,
+       ),
+       imported_repos AS (
+         SELECT w.source_type, w.source_id AS id
+         FROM work_items w
+         WHERE w.tenant_id = $1 AND w.source_type = 'github'
+       )
+       SELECT
+         COALESCE(ir.source_type, 'github') AS source_type,
+         COALESCE(ir.id, ra.id) AS id,
+         COALESCE(ra.opened_prs, 0)::int AS opened_prs,
+         COALESCE(ra.loc, 0)::int AS loc
+       FROM imported_repos ir
+       FULL OUTER JOIN repo_activity ra ON ra.id = ir.id
+       ORDER BY id`,
       [user.tenant_id, startDate, endDate]
     );
 
-    return res.json(rows.rows);
+    const results = rows.rows.map((row: any) => ({
+      ...row,
+      throughput: commitCountsByRepo[row.id] ?? 0,
+    }));
+
+    results.sort((a: any, b: any) => b.throughput - a.throughput);
+
+    return res.json(results.slice(0, 50));
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: 'Unable to load repositories' });
@@ -694,11 +754,13 @@ router.get('/api/dashboard/repositories/:id/stats', authenticate, async (req, re
     const repoId = req.params.id;
     const { startDate, endDate } = req.query as any;
     const rows = await query(
-      `SELECT completed_at::date AS date, COUNT(*)::int AS value
-       FROM work_items
-       WHERE tenant_id = $1 AND source_id = $2 AND completed_at::date BETWEEN $3::date AND $4::date
-       GROUP BY completed_at::date
-       ORDER BY completed_at::date`,
+      `SELECT pr.created_at::date AS date, COALESCE(SUM(COALESCE((pr.metadata->>'commits')::int, 0)), 0)::int AS value
+       FROM pull_requests pr
+       WHERE pr.tenant_id = $1
+         AND pr.source_id = $2
+         AND pr.created_at::date BETWEEN $3::date AND $4::date
+       GROUP BY pr.created_at::date
+       ORDER BY pr.created_at::date`,
       [user.tenant_id, repoId, startDate, endDate]
     );
 
