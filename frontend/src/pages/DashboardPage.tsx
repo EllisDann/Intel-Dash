@@ -162,6 +162,30 @@ const DashboardPage: React.FC = () => {
   const formatValue = (value: number | string | null | undefined) =>
     value !== null && value !== undefined ? value : NO_DATA_TEXT;
 
+  const metricInfo: Record<string, string> = {
+    openedPRs: 'Counts opened pull requests fetched from connected GitHub repositories.',
+    completedPRs: 'Closed pull requests from connected GitHub repositories during the selected period.',
+    averagePRSize: 'Average pull request size computed from GitHub diff data.',
+    commitsMade: 'Commit activity from connected GitHub repositories.',
+    prAuthors: 'Active pull request authors based on GitHub contribution history.',
+    totalLinesOfCode: 'Lines of code changed from GitHub pull request diffs.',
+    openedIssues: 'Issues created in Jira within the selected date range.',
+    issueAuthors: 'Unique issue creators and authors recorded in Jira.',
+    storyPointsCompleted: 'Story points completed from Jira workflow data.',
+    closedIssues: 'Issues closed in Jira during the selected period.',
+    totalReviews: 'Code review activity from connected GitHub pull request reviews.',
+    reviewers: 'Unique reviewers participating in GitHub PR reviews.',
+    reviewsDistribution: 'Review activity distribution across GitHub pull requests.',
+    averageReviewsForApproval: 'Average number of GitHub reviews required for PR approval.',
+    totalComments: 'Comment activity from GitHub pull requests and issue threads.',
+    commenters: 'Unique commenters based on GitHub review and issue comments.',
+    commentsDistribution: 'Comment activity distribution across GitHub pull requests.',
+    repositoriesData: 'Repository-level activity (commits, PRs, LOC) imported from connected GitHub repositories.',
+    projectsIssuesOverview: 'Project-level issue counts and trends collected from connected Jira projects or GitHub repositories.',
+    reviewsOverview: 'Project review activity and approval trends based on GitHub pull request reviews.',
+    discussedItemsOverview: 'Discussion and comment volume aggregated from GitHub PR and issue threads.',
+  };
+
   return (
     <div className="page-shell page-shell--dashboard">
       <div className="dashboard-layout">
@@ -195,6 +219,11 @@ const DashboardPage: React.FC = () => {
             <section className="dashboard-section">
               <div className="section-subheader">
                 <h3>Pull Requests & Commits Metrics</h3>
+                {!metrics?.integrations?.github && (
+                  <p className="disconnected-service-notice">
+                    ⚠️ GitHub is not connected. Metrics will show 0 until GitHub is connected in Settings.
+                  </p>
+                )}
               </div>
 
               <div className="dashboard-kpi-grid">
@@ -202,42 +231,56 @@ const DashboardPage: React.FC = () => {
                   title="Opened PRs"
                   value={formatValue(metrics?.openedPRs ?? metrics?.open_pr_count ?? metrics?.openPRs)}
                   subtitle="PRs opened in the selected range"
+                  info={metricInfo.openedPRs}
                   status="neutral"
                 />
                 <MetricCard
                   title="PRs Completed"
                   value={formatValue(metrics?.completedPRs ?? metrics?.completed_pr_count ?? metrics?.closedPRs)}
                   subtitle="PRs completed in the selected range"
+                  info={metricInfo.completedPRs}
                   status="neutral"
                 />
                 <MetricCard
                   title="Average PR Size"
                   value={formatValue(metrics?.averagePRSize ?? metrics?.avg_pr_size ?? metrics?.avgPRSize)}
                   subtitle="Average size per pull request"
+                  info={metricInfo.averagePRSize}
                   status="neutral"
                 />
                 <MetricCard
                   title="Commits Made"
                   value={formatValue(metrics?.commitsMade ?? metrics?.commitCount ?? metrics?.commits)}
                   subtitle="Commits made in the selected range"
+                  info={metricInfo.commitsMade}
                   status="neutral"
                 />
                 <MetricCard
                   title="PR Authors"
                   value={formatValue(metrics?.prAuthors ?? metrics?.pr_authors ?? metrics?.authors)}
                   subtitle="Active developers with PR activity"
+                  info={metricInfo.prAuthors}
                   status="neutral"
                 />
                 <MetricCard
                   title="Total Lines of Code"
                   value={formatValue(metrics?.totalLinesOfCode ?? metrics?.total_loc ?? metrics?.loc)}
                   subtitle="Lines of code changed in the range"
+                  info={metricInfo.totalLinesOfCode}
                   status="neutral"
                 />
                 <div className="repositories-card">
                   <div className="repositories-card__header">
-                    <h4>Repositories Data</h4>
-                    <p className="repositories-card__subtitle">Top repos by activity in the selected range</p>
+                    <div>
+                      <h4>Repositories Data</h4>
+                      <p className="repositories-card__subtitle">Top repos by activity in the selected range</p>
+                    </div>
+                    <div className="metric-card__info-wrapper">
+                      <button type="button" className="metric-card__info-button" aria-label="More info about repositories">
+                        i
+                      </button>
+                      <div className="metric-card__info-tooltip">{metricInfo.repositoriesData}</div>
+                    </div>
                   </div>
                   <div className="repositories-table-wrapper">
                     <table className="repositories-table">
@@ -274,6 +317,11 @@ const DashboardPage: React.FC = () => {
             <section className="dashboard-section">
               <div className="section-subheader">
                 <h3>Tickets and Issues Data</h3>
+                {!metrics?.integrations?.jira && (
+                  <p className="disconnected-service-notice">
+                    ⚠️ Jira is not connected. Metrics will show 0 until Jira is connected in Settings.
+                  </p>
+                )}
               </div>
 
               <div className="issues-layout">
@@ -282,32 +330,44 @@ const DashboardPage: React.FC = () => {
                     title="Opened Issues"
                     value={formatValue(metrics?.openedIssues ?? metrics?.open_issues ?? metrics?.openIssues)}
                     subtitle="New issues opened in the range"
+                    info={metricInfo.openedIssues}
                     status="neutral"
                   />
                   <MetricCard
                     title="Issues Authors"
                     value={formatValue(metrics?.issueAuthors ?? metrics?.issue_authors ?? metrics?.issueAuthorsCount ?? metrics?.authors)}
                     subtitle="Unique issue authors in the range"
+                    info={metricInfo.issueAuthors}
                     status="neutral"
                   />
                   <MetricCard
                     title="Story Points Completed"
                     value={formatValue(metrics?.storyPointsCompleted ?? metrics?.story_points_completed ?? metrics?.storyPoints)}
                     subtitle="Story points completed in the range"
+                    info={metricInfo.storyPointsCompleted}
                     status="neutral"
                   />
                   <MetricCard
                     title="Closed Issues"
                     value={formatValue(metrics?.closedIssues ?? metrics?.closed_issues ?? metrics?.closedIssuesCount)}
                     subtitle="Issues closed in the range"
+                    info={metricInfo.closedIssues}
                     status="neutral"
                   />
                 </div>
 
                 <div className="project-issues-card">
                   <div className="project-issues-card__header">
-                    <h4>Projects Issues Overview</h4>
-                    <p className="project-issues-card__subtitle">Project-level issue counts and trends</p>
+                    <div>
+                      <h4>Projects Issues Overview</h4>
+                      <p className="project-issues-card__subtitle">Project-level issue counts and trends</p>
+                    </div>
+                    <div className="metric-card__info-wrapper">
+                      <button type="button" className="metric-card__info-button" aria-label="More info about project issues">
+                        i
+                      </button>
+                      <div className="metric-card__info-tooltip">{metricInfo.projectsIssuesOverview}</div>
+                    </div>
                   </div>
                   <div className="project-issues-table-wrapper">
                     <table className="project-issues-table">
@@ -352,32 +412,44 @@ const DashboardPage: React.FC = () => {
                     title="Total Reviews"
                     value={formatValue(metrics?.totalReviews ?? metrics?.review_count ?? metrics?.reviews)}
                     subtitle="Reviews in the selected range"
+                    info={metricInfo.totalReviews}
                     status="neutral"
                   />
                   <MetricCard
                     title="Reviewers"
                     value={formatValue(metrics?.reviewers ?? metrics?.reviewersCount ?? metrics?.review_authors)}
                     subtitle="Unique reviewers participating"
+                    info={metricInfo.reviewers}
                     status="neutral"
                   />
                   <MetricCard
                     title="Reviews Distribution"
                     value={formatValue(metrics?.reviewsDistribution ?? metrics?.review_distribution ?? metrics?.reviewDistribution)}
                     subtitle="Review activity across PRs"
+                    info={metricInfo.reviewsDistribution}
                     status="neutral"
                   />
                   <MetricCard
                     title="Avg Reviews for PR Approval"
                     value={formatValue(metrics?.averageReviewsForApproval ?? metrics?.avg_reviews_approval ?? metrics?.avgReviewCount)}
                     subtitle="Average reviews needed to approve PRs"
+                    info={metricInfo.averageReviewsForApproval}
                     status="neutral"
                   />
                 </div>
 
                 <div className="project-issues-card">
                   <div className="project-issues-card__header">
-                    <h4>Reviews Overview</h4>
-                    <p className="project-issues-card__subtitle">Review activity and approval trends by project</p>
+                    <div>
+                      <h4>Reviews Overview</h4>
+                      <p className="project-issues-card__subtitle">Review activity and approval trends by project</p>
+                    </div>
+                    <div className="metric-card__info-wrapper">
+                      <button type="button" className="metric-card__info-button" aria-label="More info about reviews">
+                        i
+                      </button>
+                      <div className="metric-card__info-tooltip">{metricInfo.reviewsOverview}</div>
+                    </div>
                   </div>
                   <div className="project-issues-table-wrapper">
                     <table className="project-issues-table">
@@ -422,12 +494,14 @@ const DashboardPage: React.FC = () => {
                     title="Total Comments"
                     value={formatValue(metrics?.totalComments ?? metrics?.comment_count ?? metrics?.comments)}
                     subtitle="Comments in the selected range"
+                    info={metricInfo.totalComments}
                     status="neutral"
                   />
                   <MetricCard
                     title="Commenters"
                     value={formatValue(metrics?.commenters ?? metrics?.commentersCount ?? metrics?.comment_authors)}
                     subtitle="Unique commenters engaging"
+                    info={metricInfo.commenters}
                     status="neutral"
                   />
                   <MetricCard
@@ -435,14 +509,23 @@ const DashboardPage: React.FC = () => {
                     title="Comments Distribution"
                     value={formatValue(metrics?.commentsDistribution ?? metrics?.comment_distribution ?? metrics?.commentsDistribution)}
                     subtitle="Distribution of comment activity across PRs"
+                    info={metricInfo.commentsDistribution}
                     status="neutral"
                   />
                 </div>
 
                 <div className="project-issues-card">
                   <div className="project-issues-card__header">
-                    <h4>Discussed Items Overview</h4>
-                    <p className="project-issues-card__subtitle">Comment conversation and discussion volume by project</p>
+                    <div>
+                      <h4>Discussed Items Overview</h4>
+                      <p className="project-issues-card__subtitle">Comment conversation and discussion volume by project</p>
+                    </div>
+                    <div className="metric-card__info-wrapper">
+                      <button type="button" className="metric-card__info-button" aria-label="More info about discussed items">
+                        i
+                      </button>
+                      <div className="metric-card__info-tooltip">{metricInfo.discussedItemsOverview}</div>
+                    </div>
                   </div>
                   <div className="project-issues-table-wrapper">
                     <table className="project-issues-table">

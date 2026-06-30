@@ -101,6 +101,15 @@ router.get('/api/dashboard/metrics', authenticate, async (req, res) => {
     const startDate = (req.query.startDate as string) || defaultStartDate;
     const endDate = (req.query.endDate as string) || defaultEndDate;
 
+    // Check integration status
+    const integrationsRes = await query(
+      'SELECT type, is_connected FROM integrations WHERE tenant_id = $1',
+      [user.tenant_id]
+    );
+    const integrations = integrationsRes.rows;
+    const isGitHubConnected = integrations.some((i) => i.type === 'github' && i.is_connected);
+    const isJiraConnected = integrations.some((i) => i.type === 'jira' && i.is_connected);
+
     const hasDeveloperWorkItemsRes = await query(
       `SELECT EXISTS (
          SELECT 1
@@ -191,21 +200,25 @@ router.get('/api/dashboard/metrics', authenticate, async (req, res) => {
           [user.tenant_id, startDate, endDate]
         ),
         commitStatsPromise,
-        query(issueStatsQuery, [user.tenant_id, startDate, endDate]),
-        query(
-          `SELECT
-             COALESCE(w.source_id, w.source_type, 'unknown') AS project_name,
-             COALESCE(w.source_id, w.source_type, 'unknown') AS project_id,
-             COUNT(*)::int AS created,
-             SUM(CASE WHEN w.completed_at IS NULL OR w.completed_at::date > $3::date THEN 1 ELSE 0 END)::int AS open,
-             SUM(CASE WHEN w.completed_at::date BETWEEN $2::date AND $3::date THEN 1 ELSE 0 END)::int AS closed
-           FROM work_items w
-           WHERE w.tenant_id = $1 AND w.created_at::date BETWEEN $2::date AND $3::date
-           GROUP BY project_name, project_id
-           ORDER BY created DESC
-           LIMIT 20`,
-          [user.tenant_id, startDate, endDate]
-        ),
+        isJiraConnected
+          ? query(issueStatsQuery, [user.tenant_id, startDate, endDate])
+          : Promise.resolve({ rows: [{ opened_issues: 0, closed_issues: 0, issue_authors: 0 }] }),
+        isJiraConnected
+          ? query(
+              `SELECT
+                 COALESCE(w.source_id, w.source_type, 'unknown') AS project_name,
+                 COALESCE(w.source_id, w.source_type, 'unknown') AS project_id,
+                 COUNT(*)::int AS created,
+                 SUM(CASE WHEN w.completed_at IS NULL OR w.completed_at::date > $3::date THEN 1 ELSE 0 END)::int AS open,
+                 SUM(CASE WHEN w.completed_at::date BETWEEN $2::date AND $3::date THEN 1 ELSE 0 END)::int AS closed
+               FROM work_items w
+               WHERE w.tenant_id = $1 AND w.created_at::date BETWEEN $2::date AND $3::date
+               GROUP BY project_name, project_id
+               ORDER BY created DESC
+               LIMIT 20`,
+              [user.tenant_id, startDate, endDate]
+            )
+          : Promise.resolve({ rows: [] }),
         query(
           `SELECT
              COUNT(*)::int AS total_reviews,
@@ -287,6 +300,10 @@ router.get('/api/dashboard/metrics', authenticate, async (req, res) => {
       commenters: commentStats.commenters ?? 0,
       commentsDistribution: commentStats.comments_distribution !== null ? Number(commentStats.comments_distribution) : null,
       projectComments: commentProjectsRes.rows,
+      integrations: {
+        github: isGitHubConnected,
+        jira: isJiraConnected,
+      },
     });
   } catch (err) {
     console.error(err);

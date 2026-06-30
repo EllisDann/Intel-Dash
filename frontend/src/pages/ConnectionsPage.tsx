@@ -126,7 +126,6 @@ const ConnectionsPage: React.FC = () => {
             await api.post(`/api/integrations/${integration.id}/sync`);
             setSyncedIntegrations(prev => new Set(prev).add(integration.id));
             await fetchIntegrations();
-            setActiveTab('projects');
           } catch (err: any) {
             console.error('Auto-sync failed:', err);
           }
@@ -363,14 +362,7 @@ const ConnectionsPage: React.FC = () => {
                         <h3>Available GitHub Repositories</h3>
                         <p>Select repositories to import into Intel-Dash.</p>
                       </div>
-                      <button
-                        type="button"
-                        className="button button-secondary"
-                        disabled={syncingMetrics}
-                        onClick={handleSyncMetrics}
-                      >
-                        {syncingMetrics ? 'Syncing metrics…' : 'Sync GitHub metrics'}
-                      </button>
+                      {/* Sync is automatic on refresh; manual sync button removed */}
                     </div>
                     {reposLoading ? (
                       <p>Loading repositories...</p>

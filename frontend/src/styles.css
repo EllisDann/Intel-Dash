@@ -924,17 +924,38 @@ button:disabled {
   box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
 }
 
+/* allow absolute-positioned header controls inside large cards */
+.repositories-card,
+.project-issues-card {
+  position: relative;
+}
+
 .repositories-card__header {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
   margin-bottom: 0.5rem;
+  padding-right: 2.5rem; /* space for absolute info button */
 }
 
 .repositories-card__subtitle {
   margin: 0;
   color: #64748b;
   font-size: 0.95rem;
+}
+
+/* position the info button in the top-right corner of large cards */
+.repositories-card .metric-card__info-wrapper,
+.project-issues-card .metric-card__info-wrapper {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.6rem;
+}
+
+.repositories-card .metric-card__info-tooltip,
+.project-issues-card .metric-card__info-tooltip {
+  right: 0;
+  left: auto;
 }
 
 .repositories-table-wrapper {
@@ -1111,6 +1132,75 @@ button:disabled {
   font-size: 0.95rem;
 }
 
+.metric-card__header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.metric-card__info-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.metric-card__info-button {
+  width: 1.5rem;
+  height: 1.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.9);
+  color: #475569;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: default;
+  padding: 0;
+}
+
+.metric-card__info-button:hover,
+.metric-card__info-button:focus {
+  border-color: rgba(15, 23, 42, 0.28);
+  color: #0f172a;
+}
+
+.metric-card__info-tooltip {
+  pointer-events: none;
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  width: 240px;
+  padding: 0.75rem;
+  background: rgba(15, 23, 42, 0.95);
+  color: #f8fafc;
+  border-radius: 0.75rem;
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.12);
+  font-size: 0.8rem;
+  line-height: 1.4;
+  opacity: 0;
+  transform: translateY(-0.25rem) scale(0.95);
+  transform-origin: top right;
+  transition: opacity 120ms ease, transform 120ms ease;
+  z-index: 10;
+}
+
+.metric-card__info-wrapper:hover .metric-card__info-tooltip,
+.metric-card__info-wrapper:focus-within .metric-card__info-tooltip {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+@media (max-width: 720px) {
+  .metric-card__info-tooltip {
+    width: 210px;
+    left: 50%;
+    right: auto;
+    transform-origin: top center;
+  }
+}
+
 .metric-card__delta {
   font-weight: 700;
   color: #6b7280;
@@ -1144,6 +1234,16 @@ button:disabled {
   font-size: 1.05rem;
 }
 
+.disconnected-service-notice {
+  margin: 0.75rem 0 0 0;
+  padding: 0.75rem 1rem;
+  background-color: #fef3c7;
+  border-left: 4px solid #f59e0b;
+  color: #92400e;
+  font-size: 0.9rem;
+  border-radius: 0.25rem;
+}
+
 .repositories-card__header h4 {
   margin: 0;
   font-size: 1rem;
@@ -1153,6 +1253,20 @@ button:disabled {
   margin: 0;
   color: #64748b;
   font-size: 0.85rem;
+}
+
+/* Make card headers support a right-aligned info button + tooltip */
+.repositories-card__header,
+.project-issues-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.project-issues-card__header h4,
+.repositories-card__header h4 {
+  margin: 0;
 }
 
 .repositories-table th,
